@@ -59,15 +59,3 @@ Ensure the new warehouse's capacity can accommodate the stock from the warehouse
 **Stock Matching**
 
 Confirm that the stock of the new warehouse matches the stock of the previous warehouse.
-
-## BONUS task
-
-Implement the feature of associating `Warehouses` as fullfilment units of certain `Products` to determined `Stores`.
-
-Constraints:
-
-1. Each `Product` can be fulfilled by a maximum of 2 different `Warehouses` per `Store`
-
-2. Each `Store` can be fulfilled by a maximum of 3 different `Warehouses`
-
-3. Each `Warehouse` can store maximally 5 types of `Products`

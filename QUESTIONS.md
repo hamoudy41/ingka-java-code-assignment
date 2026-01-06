@@ -15,10 +15,3 @@ Here we have 3 questions related to the code base for you to answer. It is not a
 ```txt
 
 ```
-----
-3. Given that you have limited time and resources for implementing tests for this project, what would be your approach/plan implementing those? Why?
-
-**Answer:**
-```txt
-
-```
