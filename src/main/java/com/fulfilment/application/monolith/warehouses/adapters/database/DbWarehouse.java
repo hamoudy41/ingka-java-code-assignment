@@ -6,25 +6,31 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "warehouse")
 @Cacheable
+@Getter
+@Setter
+@NoArgsConstructor
 public class DbWarehouse {
 
-  @Id @GeneratedValue public Long id;
+  @Id
+  @GeneratedValue
+  private Long id;
 
-  public String businessUnitCode;
+  private String businessUnitCode;
 
-  public String location;
+  private String location;
 
-  public Integer capacity;
+  private Integer capacity;
 
-  public Integer stock;
+  private Integer stock;
 
-  public LocalDateTime createdAt;
+  private LocalDateTime createdAt;
 
-  public LocalDateTime archivedAt;
-
-  public DbWarehouse() {}
+  private LocalDateTime archivedAt;
 }

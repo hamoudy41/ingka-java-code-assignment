@@ -14,11 +14,9 @@ public class LocationGatewayTest {
   @Test
   @DisplayName("resolveByIdentifier should return matching Location for existing identifier")
   public void testWhenResolveExistingLocationShouldReturn() {
-    // when
     Location location = locationGateway.resolveByIdentifier("ZWOLLE-001");
 
-    // then
-    assertEquals("ZWOLLE-001", location.identification);
+    assertEquals("ZWOLLE-001", location.identification());
   }
 
   @Test

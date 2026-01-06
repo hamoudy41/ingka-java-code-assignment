@@ -6,25 +6,33 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Cacheable
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Product {
 
-  @Id @GeneratedValue public Long id;
+  @Id
+  @GeneratedValue
+  private Long id;
 
   @Column(length = 40, unique = true)
-  public String name;
+  private String name;
 
   @Column(nullable = true)
-  public String description;
+  private String description;
 
   @Column(precision = 10, scale = 2, nullable = true)
-  public BigDecimal price;
+  private BigDecimal price;
 
-  public int stock;
-
-  public Product() {}
+  private int stock;
 
   public Product(String name) {
     this.name = name;

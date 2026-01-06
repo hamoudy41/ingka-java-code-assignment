@@ -4,15 +4,13 @@ import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.CreateWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import jakarta.enterprise.context.ApplicationScoped;
+import lombok.RequiredArgsConstructor;
 
 @ApplicationScoped
+@RequiredArgsConstructor
 public class CreateWarehouseUseCase implements CreateWarehouseOperation {
 
   private final WarehouseStore warehouseStore;
-
-  public CreateWarehouseUseCase(WarehouseStore warehouseStore) {
-    this.warehouseStore = warehouseStore;
-  }
 
   @Override
   public void create(Warehouse warehouse) {
