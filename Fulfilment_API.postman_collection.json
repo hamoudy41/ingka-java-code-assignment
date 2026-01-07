@@ -1,0 +1,1464 @@
+{
+	"info": {
+		"_postman_id": "fulfilment-api-collection",
+		"name": "Fulfilment API - Complete Test Suite",
+		"description": "Comprehensive Postman collection for testing all endpoints in the Fulfilment Application API including Stores, Products, and Warehouses with success and error scenarios.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Stores",
+			"item": [
+				{
+					"name": "List All Stores",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Store by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Store - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Response has store data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('quantityProductsInStock');",
+									"    pm.collectionVariables.set('storeId', jsonData.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Store {{$timestamp}}\",\n    \"quantityProductsInStock\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Store - Invalid (ID set)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates ID was invalidly set\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Id was invalidly set');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 999,\n    \"name\": \"Invalid Store\",\n    \"quantityProductsInStock\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Store - Invalid (Blank Name)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates name is required\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('name');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"\",\n    \"quantityProductsInStock\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Store - Invalid (Negative Stock)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates stock cannot be negative\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('negative');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Invalid Stock Store\",\n    \"quantityProductsInStock\": -10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Store - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Store was updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.equal('Updated Store Name');",
+									"    pm.expect(jsonData.quantityProductsInStock).to.equal(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Store Name\",\n    \"quantityProductsInStock\": 200\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Store - Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error message indicates store not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('does not exist');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Non-existent Store\",\n    \"quantityProductsInStock\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "99999"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Store - Update Name Only",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Only name was updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.equal('Patched Store Name');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Patched Store Name\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Store - Update Stock Only",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Only stock was updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.quantityProductsInStock).to.equal(150);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"quantityProductsInStock\": 150\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Store - Invalid (Negative Stock)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"quantityProductsInStock\": -5\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Store - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Store - Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/stores/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "99999"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "List All Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/product",
+							"host": ["{{baseUrl}}"],
+							"path": ["product"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "{{productId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Response has product data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.collectionVariables.set('productId', jsonData.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Product {{$timestamp}}\",\n    \"description\": \"Test product description\",\n    \"price\": 29.99,\n    \"stock\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product",
+							"host": ["{{baseUrl}}"],
+							"path": ["product"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product - Invalid (ID set)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates ID was invalidly set\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Id was invalidly set');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 999,\n    \"name\": \"Invalid Product\",\n    \"price\": 19.99,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product",
+							"host": ["{{baseUrl}}"],
+							"path": ["product"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Product was updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.equal('Updated Product Name');",
+									"    pm.expect(jsonData.price).to.equal(39.99);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Product Name\",\n    \"description\": \"Updated description\",\n    \"price\": 39.99,\n    \"stock\": 75\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "{{productId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product - Invalid (Name not set)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates name was not set\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Product Name was not set');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Product without name\",\n    \"price\": 19.99,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "{{productId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product - Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error message indicates product not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('does not exist');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Non-existent Product\",\n    \"price\": 19.99,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "99999"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "{{productId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product - Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/product/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "99999"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Warehouses",
+			"item": [
+				{
+					"name": "List All Warehouses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Warehouse by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Response has warehouse data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('businessUnitCode');",
+									"    pm.expect(jsonData).to.have.property('location');",
+									"    pm.expect(jsonData).to.have.property('capacity');",
+									"    pm.expect(jsonData).to.have.property('stock');",
+									"    pm.expect(jsonData).to.have.property('creationAt');",
+									"    pm.collectionVariables.set('warehouseBusinessUnitCode', jsonData.businessUnitCode);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"MWH.TEST.{{$timestamp}}\",\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 50,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Invalid (ID set)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates ID was invalidly set\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Id was invalidly set');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"INVALID-ID\",\n    \"businessUnitCode\": \"MWH.INVALID\",\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 50,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Invalid (Blank Business Unit Code)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates business unit code is required\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Business unit code');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"\",\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 50,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Invalid (Blank Location)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates location is required\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Location');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"MWH.INVALID.LOC\",\n    \"location\": \"\",\n    \"capacity\": 50,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Invalid (Capacity < 1)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates capacity must be at least 1\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Capacity');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"MWH.INVALID.CAP\",\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 0,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Invalid (Negative Stock)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates stock cannot be negative\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Stock');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"MWH.INVALID.STOCK\",\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 50,\n    \"stock\": -5\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Location Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error message indicates location not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('No Location found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"MWH.INVALID.LOC\",\n    \"location\": \"INVALID-LOCATION\",\n    \"capacity\": 50,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Capacity Exceeds Location Max",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates capacity exceeds location max\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('exceeds maximum capacity');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"MWH.CAP.EXCEED\",\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 80,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Stock Exceeds Capacity",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates stock exceeds capacity\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('insufficient');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"MWH.STOCK.EXCEED\",\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 10,\n    \"stock\": 20\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Warehouse - Duplicate Business Unit Code",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error message indicates duplicate business unit code\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('already exists');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"businessUnitCode\": \"{{warehouseBusinessUnitCode}}\",\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 50,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Replace Warehouse - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Warehouse was replaced\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.capacity).to.equal(60);",
+									"    pm.expect(jsonData.stock).to.equal(10);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 60,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Replace Warehouse - Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error message indicates warehouse not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('does not exist');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 60,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/MWH.NONEXISTENT",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "MWH.NONEXISTENT"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Replace Warehouse - Capacity Insufficient for Existing Stock",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates capacity insufficient\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('insufficient');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 5,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Replace Warehouse - Stock Mismatch",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 422\", function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"pm.test(\"Error message indicates stock mismatch\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Stock mismatch');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"location\": \"AMSTERDAM-002\",\n    \"capacity\": 60,\n    \"stock\": 15\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Archive Warehouse - Success",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Archive Warehouse - Verify Archived",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Warehouse has archivedAt timestamp\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('archivedAt');",
+									"    pm.expect(jsonData.archivedAt).to.not.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Archive Warehouse - Already Archived",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error message indicates already archived\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('already archived');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Archive Warehouse - Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/MWH.NONEXISTENT.ARCHIVE",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "MWH.NONEXISTENT.ARCHIVE"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "storeId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "productId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "warehouseBusinessUnitCode",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+
