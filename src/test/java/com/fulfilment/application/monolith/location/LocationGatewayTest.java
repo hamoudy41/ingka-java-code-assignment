@@ -4,12 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fulfilment.application.monolith.warehouses.domain.models.Location;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class LocationGatewayTest {
+@QuarkusTest
+class LocationGatewayTest {
 
-  private final LocationGateway locationGateway = new LocationGateway();
+  @Inject
+  LocationGateway locationGateway;
 
   @Test
   @DisplayName("resolveByIdentifier should return matching Location for existing identifier")

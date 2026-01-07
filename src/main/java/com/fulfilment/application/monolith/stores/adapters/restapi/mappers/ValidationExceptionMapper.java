@@ -29,10 +29,20 @@ public class ValidationExceptionMapper implements ExceptionMapper<ConstraintViol
         .map(ConstraintViolation::getMessage)
         .collect(Collectors.joining(", "));
 
+    boolean isWarehouseRequest = exception.getConstraintViolations().stream()
+        .anyMatch(v -> {
+          String rootBeanClass = v.getRootBeanClass().getName();
+          return rootBeanClass.contains("warehouse") || rootBeanClass.contains("Warehouse");
+        });
+
     log.warnf("Validation failed: %s", errorMessage);
 
     ObjectNode errorJson = objectMapper.createObjectNode();
-    errorJson.put("exceptionType", InvalidStoreRequestException.class.getName());
+    if (isWarehouseRequest) {
+      errorJson.put("exceptionType", "com.fulfilment.application.monolith.warehouses.domain.exceptions.InvalidWarehouseRequestException");
+    } else {
+      errorJson.put("exceptionType", InvalidStoreRequestException.class.getName());
+    }
     errorJson.put("code", UNPROCESSABLE_ENTITY);
     errorJson.put("error", errorMessage);
 

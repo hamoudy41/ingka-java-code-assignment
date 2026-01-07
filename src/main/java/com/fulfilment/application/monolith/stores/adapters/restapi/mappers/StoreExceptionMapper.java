@@ -17,7 +17,7 @@ import java.util.function.Predicate;
 import lombok.extern.jbosslog.JBossLog;
 
 @Provider
-@Priority(Priorities.USER + 1000)
+@Priority(Priorities.USER + 3000)
 @JBossLog
 public class StoreExceptionMapper implements ExceptionMapper<RuntimeException> {
 
