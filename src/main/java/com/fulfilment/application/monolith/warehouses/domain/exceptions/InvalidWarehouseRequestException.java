@@ -1,6 +1,10 @@
 package com.fulfilment.application.monolith.warehouses.domain.exceptions;
 
-public class InvalidWarehouseRequestException extends WarehouseDomainException {
+/**
+ * Exception thrown for invalid warehouse request data.
+ */
+
+public class InvalidWarehouseRequestException extends RuntimeException {
 
   public InvalidWarehouseRequestException(String message) {
     super(message);

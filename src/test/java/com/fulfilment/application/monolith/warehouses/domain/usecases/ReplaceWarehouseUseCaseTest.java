@@ -66,7 +66,7 @@ class ReplaceWarehouseUseCaseTest {
 
     assertThrows(WarehouseNotFoundException.class, () -> {
       replaceWarehouseUseCase.replace(replacement);
-    });
+    }, "Then exception should be thrown when warehouse does not exist");
   }
 
   @Test
@@ -89,7 +89,7 @@ class ReplaceWarehouseUseCaseTest {
 
     assertThrows(LocationCapacityExceededException.class, () -> {
       replaceWarehouseUseCase.replace(replacement);
-    });
+    }, "Then exception should be thrown when capacity exceeds location maximum");
   }
 
   @Test
@@ -112,7 +112,7 @@ class ReplaceWarehouseUseCaseTest {
 
     assertThrows(InsufficientCapacityException.class, () -> {
       replaceWarehouseUseCase.replace(replacement);
-    });
+    }, "Then exception should be thrown when new capacity is less than existing stock");
   }
 
   @Test
@@ -135,6 +135,71 @@ class ReplaceWarehouseUseCaseTest {
 
     assertThrows(StockMismatchException.class, () -> {
       replaceWarehouseUseCase.replace(replacement);
-    });
+    }, "Then exception should be thrown when new stock does not match existing stock");
+  }
+
+  @Test
+  @DisplayName("Should replace warehouse when capacity exactly matches existing stock")
+  void shouldReplaceWhenCapacityExactlyMatchesStock() {
+    String businessUnitCode = "MWH.REPLACE." + System.currentTimeMillis();
+    
+    Warehouse existing = new Warehouse();
+    existing.setBusinessUnitCode(businessUnitCode);
+    existing.setLocation("AMSTERDAM-002");
+    existing.setCapacity(60);
+    existing.setStock(20);
+    createWarehouseUseCase.create(existing);
+
+    Warehouse replacement = new Warehouse();
+    replacement.setBusinessUnitCode(businessUnitCode);
+    replacement.setLocation("AMSTERDAM-002");
+    replacement.setCapacity(20);
+    replacement.setStock(20);
+
+    replaceWarehouseUseCase.replace(replacement);
+  }
+
+  @Test
+  @DisplayName("Should replace warehouse when location changes and new location has capacity")
+  void shouldReplaceWhenLocationChanges() {
+    String businessUnitCode = "MWH.REPLACE." + System.currentTimeMillis();
+    
+    Warehouse existing = new Warehouse();
+    existing.setBusinessUnitCode(businessUnitCode);
+    existing.setLocation("ZWOLLE-001");
+    existing.setCapacity(30);
+    existing.setStock(10);
+    createWarehouseUseCase.create(existing);
+
+    Warehouse replacement = new Warehouse();
+    replacement.setBusinessUnitCode(businessUnitCode);
+    replacement.setLocation("ZWOLLE-002");
+    replacement.setCapacity(40);
+    replacement.setStock(10);
+
+    replaceWarehouseUseCase.replace(replacement);
+  }
+
+  @Test
+  @DisplayName("Should throw exception when replacing with zero capacity but positive stock")
+  void shouldThrowWhenReplacingWithZeroCapacityButPositiveStock() {
+    String businessUnitCode = "MWH.REPLACE." + System.currentTimeMillis();
+    
+    Warehouse existing = new Warehouse();
+    existing.setBusinessUnitCode(businessUnitCode);
+    existing.setLocation("AMSTERDAM-002");
+    existing.setCapacity(60);
+    existing.setStock(20);
+    createWarehouseUseCase.create(existing);
+
+    Warehouse replacement = new Warehouse();
+    replacement.setBusinessUnitCode(businessUnitCode);
+    replacement.setLocation("AMSTERDAM-002");
+    replacement.setCapacity(0);
+    replacement.setStock(20);
+
+    assertThrows(InsufficientCapacityException.class, () -> {
+      replaceWarehouseUseCase.replace(replacement);
+    }, "Then exception should be thrown when replacing with zero capacity but positive stock");
   }
 }

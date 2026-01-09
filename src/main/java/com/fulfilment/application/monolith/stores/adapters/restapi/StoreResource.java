@@ -1,5 +1,6 @@
 package com.fulfilment.application.monolith.stores.adapters.restapi;
 
+import com.fulfilment.application.monolith.common.ApiError;
 import com.fulfilment.application.monolith.stores.adapters.database.Store;
 import com.fulfilment.application.monolith.stores.adapters.legacy.StoreSyncService;
 import com.fulfilment.application.monolith.stores.adapters.restapi.dto.CreateStoreRequest;
@@ -19,34 +20,74 @@ import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 import jakarta.persistence.OptimisticLockException;
 import java.util.List;
 import lombok.extern.jbosslog.JBossLog;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+/**
+ * REST API resource for store operations.
+ * Provides endpoints for CRUD operations on stores with legacy system synchronization.
+ */
 @Path("stores")
 @ApplicationScoped
 @Produces("application/json")
 @Consumes("application/json")
 @JBossLog
+@Tag(name = "Stores", description = "Store management operations with legacy system synchronization")
 public class StoreResource {
 
   @Inject StoreSyncService storeSyncService;
 
   @GET
+  @Operation(summary = "List all stores", description = "Retrieves a list of all stores sorted by name")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "200", description = "Successful operation",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
   public List<Store> get() {
     return Store.listAll(Sort.by("name"));
   }
 
   @GET
   @Path("{id}")
-  public Store getSingle(Long id) {
+  @Operation(summary = "Get store by ID", description = "Retrieves a specific store by its ID")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "200", description = "Store found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+      @APIResponse(responseCode = "404", description = "Store not found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
+  public Store getSingle(
+      @Parameter(description = "ID of the store", required = true)
+      @PathParam("id") Long id) {
     return findStoreOrThrow(id);
   }
 
   @POST
   @Transactional
+  @Operation(summary = "Create a new store", description = "Creates a new store and synchronizes with legacy system")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "201", description = "Store created successfully",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+      @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error or legacy sync failure",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
   public Response create(@NotNull(message = "Store cannot be null.") @Valid CreateStoreRequest request) {
     Store store = new Store();
     store.setName(request.name());
@@ -61,7 +102,23 @@ public class StoreResource {
   @PUT
   @Path("{id}")
   @Transactional
-  public Store update(Long id, @Valid UpdateStoreRequest request) {
+  @Operation(summary = "Update store", description = "Updates an existing store (full replacement) and synchronizes with legacy system")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "200", description = "Store updated successfully",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+      @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "404", description = "Store not found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "409", description = "Optimistic locking conflict",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error or legacy sync failure",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
+  public Store update(
+      @Parameter(description = "ID of the store", required = true)
+      @PathParam("id") Long id, 
+      @Valid UpdateStoreRequest request) {
     Store entity = findStoreOrThrow(id);
     return updateStore(entity, request, id);
   }
@@ -87,7 +144,23 @@ public class StoreResource {
   @PATCH
   @Path("{id}")
   @Transactional
-  public Store patch(Long id, @Valid PatchStoreRequest request) {
+  @Operation(summary = "Partially update store", description = "Updates specific fields of a store and synchronizes with legacy system")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "200", description = "Store updated successfully",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+      @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "404", description = "Store not found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "409", description = "Optimistic locking conflict",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error or legacy sync failure",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
+  public Store patch(
+      @Parameter(description = "ID of the store", required = true)
+      @PathParam("id") Long id, 
+      @Valid PatchStoreRequest request) {
     Store entity = findStoreOrThrow(id);
     boolean updated = applyPartialUpdates(entity, request);
     return updated ? persistAndSync(entity, id) : entity;
@@ -124,7 +197,17 @@ public class StoreResource {
   @DELETE
   @Path("{id}")
   @Transactional
-  public Response delete(Long id) {
+  @Operation(summary = "Delete store", description = "Deletes a store from the system")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "204", description = "Store deleted successfully"),
+      @APIResponse(responseCode = "404", description = "Store not found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
+  public Response delete(
+      @Parameter(description = "ID of the store", required = true)
+      @PathParam("id") Long id) {
     Store entity = findStoreOrThrow(id);
     entity.delete();
     log.infof("Deleted store: %s (id: %d)", entity.getName(), id);

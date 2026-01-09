@@ -4,6 +4,10 @@ import java.time.ZonedDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Domain model representing a warehouse.
+ * Contains business logic and validation rules for warehouse entities.
+ */
 @Getter
 @Setter
 public class Warehouse {

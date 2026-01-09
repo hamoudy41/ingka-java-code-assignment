@@ -4,6 +4,10 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * Request DTO for replacing an existing warehouse.
+ */
+
 public record ReplaceWarehouseRequest(
     @NotBlank(message = "Location is required.")
     String location,

@@ -12,6 +12,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jbosslog.JBossLog;
 
+/**
+ * Use case for replacing existing warehouses.
+ * Validates business rules including warehouse existence, capacity accommodation,
+ * stock matching, and location constraints.
+ */
 @ApplicationScoped
 @RequiredArgsConstructor
 @JBossLog
@@ -21,6 +26,19 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
   private final LocationResolver locationResolver;
   private final WarehouseValidationHelper validationHelper;
 
+  /**
+   * Replaces an existing warehouse with new values.
+   * Validates: warehouse existence, business unit code uniqueness,
+   * capacity accommodation, stock matching, and location constraints.
+   *
+   * @param newWarehouse the warehouse with updated values
+   * @throws WarehouseNotFoundException if warehouse does not exist
+   * @throws DuplicateBusinessUnitCodeException if new business unit code already exists
+   * @throws LocationWarehouseLimitExceededException if location warehouse limit is reached
+   * @throws LocationCapacityExceededException if capacity exceeds location maximum
+   * @throws InsufficientCapacityException if new capacity is less than existing stock
+   * @throws StockMismatchException if new stock does not match existing stock
+   */
   @Override
   public void replace(Warehouse newWarehouse) {
     log.debugf("Replacing warehouse with business unit code '%s'", newWarehouse.getBusinessUnitCode());
@@ -47,6 +65,13 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
     log.infof("Successfully replaced warehouse with business unit code '%s'", newWarehouse.getBusinessUnitCode());
   }
 
+  /**
+   * Validates that the new business unit code is unique (if changed).
+   *
+   * @param newBusinessUnitCode the new business unit code
+   * @param existingBusinessUnitCode the existing business unit code
+   * @throws DuplicateBusinessUnitCodeException if new code already exists
+   */
   private void validateNewBusinessUnitCodeUniqueness(String newBusinessUnitCode, String existingBusinessUnitCode) {
     if (!newBusinessUnitCode.equals(existingBusinessUnitCode)) {
       Warehouse duplicate = warehouseStore.findByBusinessUnitCode(newBusinessUnitCode);
@@ -57,6 +82,16 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
     }
   }
 
+  /**
+   * Validates replacement-specific constraints:
+   * - New capacity must accommodate existing stock
+   * - New stock must match existing stock
+   *
+   * @param newWarehouse the new warehouse values
+   * @param existing the existing warehouse
+   * @throws InsufficientCapacityException if new capacity is less than existing stock
+   * @throws StockMismatchException if stock values don't match
+   */
   private void validateReplacementConstraints(Warehouse newWarehouse, Warehouse existing) {
     if (newWarehouse.getCapacity() < existing.getStock()) {
       log.warnf("New capacity %d is insufficient for existing stock %d",

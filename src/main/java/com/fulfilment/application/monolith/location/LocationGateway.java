@@ -7,6 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.jbosslog.JBossLog;
 
+/**
+ * Gateway for resolving location information.
+ * Provides access to location data including maximum warehouse count and capacity.
+ */
 @ApplicationScoped
 @JBossLog
 public class LocationGateway implements LocationResolver {
@@ -24,6 +28,14 @@ public class LocationGateway implements LocationResolver {
     locations.add(new Location("VETSBY-001", 1, 90));
   }
 
+  /**
+   * Resolves a location by its identifier.
+   *
+   * @param identifier the location identifier
+   * @return the Location record with max warehouses and capacity
+   * @throws InvalidLocationIdentifierException if identifier is null or blank
+   * @throws LocationNotFoundException if location is not found
+   */
   @Override
   public Location resolveByIdentifier(String identifier) {
     if (identifier == null || identifier.isBlank()) {

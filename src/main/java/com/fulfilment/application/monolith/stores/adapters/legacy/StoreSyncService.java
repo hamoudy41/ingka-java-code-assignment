@@ -13,6 +13,10 @@ import jakarta.transaction.TransactionSynchronizationRegistry;
 import java.util.UUID;
 import lombok.extern.jbosslog.JBossLog;
 
+/**
+ * Service for synchronizing store operations with legacy systems.
+ * Registers transaction synchronization callbacks to ensure legacy sync happens after commit.
+ */
 @ApplicationScoped
 @JBossLog
 public class StoreSyncService {

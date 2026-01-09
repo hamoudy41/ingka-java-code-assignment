@@ -2,8 +2,12 @@ package com.fulfilment.application.monolith.warehouses.domain.exceptions;
 
 import lombok.Getter;
 
+/**
+ * Exception thrown when warehouse capacity exceeds location maximum.
+ */
+
 @Getter
-public class LocationCapacityExceededException extends WarehouseDomainException {
+public class LocationCapacityExceededException extends RuntimeException {
 
   private final int requestedCapacity;
   private final int maxCapacity;

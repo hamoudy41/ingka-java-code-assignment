@@ -10,6 +10,10 @@ import java.time.ZonedDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jbosslog.JBossLog;
 
+/**
+ * Use case for archiving warehouses.
+ * Sets the archived timestamp to mark a warehouse as archived.
+ */
 @ApplicationScoped
 @RequiredArgsConstructor
 @JBossLog
@@ -17,6 +21,14 @@ public class ArchiveWarehouseUseCase implements ArchiveWarehouseOperation {
 
   private final WarehouseStore warehouseStore;
 
+  /**
+   * Archives a warehouse by setting its archived timestamp.
+   * Validates that the warehouse exists and is not already archived.
+   *
+   * @param warehouse the warehouse to archive
+   * @throws WarehouseNotFoundException if warehouse does not exist
+   * @throws WarehouseAlreadyArchivedException if warehouse is already archived
+   */
   @Override
   public void archive(Warehouse warehouse) {
     log.debugf("Archiving warehouse with business unit code '%s'", warehouse.getBusinessUnitCode());

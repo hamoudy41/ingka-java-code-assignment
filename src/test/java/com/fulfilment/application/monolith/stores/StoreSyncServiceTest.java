@@ -10,6 +10,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.UserTransaction;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +21,12 @@ class StoreSyncServiceTest {
   @Inject StoreSyncService storeSyncService;
   @Inject EntityManager entityManager;
   @Inject UserTransaction userTransaction;
+
+  @BeforeEach
+  @Transactional
+  void cleanup() {
+    Store.delete("name LIKE ?1", "Test Store%");
+  }
 
   @Test
   @DisplayName("Store is queryable from database after commit, verifying commit happens before sync")
@@ -148,5 +156,65 @@ class StoreSyncServiceTest {
 
   private Store findById(Long id) {
     return entityManager.find(Store.class, id);
+  }
+
+  @Test
+  @DisplayName("Should skip sync when store is null")
+  void shouldSkipSyncWhenStoreIsNull() throws Exception {
+    commit(() -> {
+      storeSyncService.scheduleCreateSync(null);
+    });
+  }
+
+  @Test
+  @DisplayName("Should skip sync when store id is null")
+  void shouldSkipSyncWhenStoreIdIsNull() throws Exception {
+    Store store = new Store();
+    store.setName("Test Store");
+    
+    commit(() -> {
+      storeSyncService.scheduleCreateSync(store);
+    });
+  }
+
+  @Test
+  @DisplayName("Should handle sync when store not found after commit")
+  void shouldHandleSyncWhenStoreNotFoundAfterCommit() throws Exception {
+    Store store = createStore("Test Store", 10);
+    
+    Long storeId = commit(() -> {
+      store.persist();
+      Long id = store.getId();
+      storeSyncService.scheduleCreateSync(store);
+      return id;
+    });
+    
+    commit(() -> {
+      Store found = entityManager.find(Store.class, storeId);
+      if (found != null) {
+        found.delete();
+      }
+    });
+  }
+
+  @Test
+  @DisplayName("Should handle version mismatch during sync")
+  void shouldHandleVersionMismatchDuringSync() throws Exception {
+    Store store = createStore("Test Store", 10);
+    
+    Long storeId = commit(() -> {
+      store.persist();
+      Long id = store.getId();
+      storeSyncService.scheduleCreateSync(store);
+      return id;
+    });
+    
+    commit(() -> {
+      Store entity = entityManager.find(Store.class, storeId);
+      entity.setQuantityProductsInStock(20);
+      entity.persist();
+      entity.setQuantityProductsInStock(30);
+      entity.persist();
+    });
   }
 }

@@ -5,6 +5,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
+/**
+ * Request DTO for creating a new warehouse.
+ */
+
 public record CreateWarehouseRequest(
     @Null(message = "Id was invalidly set on request.")
     String id,

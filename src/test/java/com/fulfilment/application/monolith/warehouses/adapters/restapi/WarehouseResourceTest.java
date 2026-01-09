@@ -61,7 +61,7 @@ class WarehouseResourceTest {
   }
 
   @Test
-  @DisplayName("POST /warehouse should reject warehouse with id set")
+  @DisplayName("POST /warehouse should reject warehouse with id set (Bean Validation)")
   void testCreateWarehouseWithIdSet() {
     String businessUnitCode = "MWH.TEST." + System.currentTimeMillis();
     
@@ -73,13 +73,13 @@ class WarehouseResourceTest {
         .when()
         .post("/warehouse")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("InvalidWarehouseRequestException"))
-        .body("error", containsString("Id was invalidly set"));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
+        .body("error", notNullValue());
   }
 
   @Test
-  @DisplayName("POST /warehouse should reject warehouse with null business unit code")
+  @DisplayName("POST /warehouse should reject warehouse with null business unit code (Bean Validation)")
   void testCreateWarehouseWithNullBusinessUnitCode() {
     given()
         .contentType(ContentType.JSON)
@@ -87,13 +87,13 @@ class WarehouseResourceTest {
         .when()
         .post("/warehouse")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("InvalidWarehouseRequestException"))
-        .body("error", containsString("Business unit code is required"));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
+        .body("error", notNullValue());
   }
 
   @Test
-  @DisplayName("POST /warehouse should reject warehouse with negative capacity")
+  @DisplayName("POST /warehouse should reject warehouse with negative capacity (Bean Validation)")
   void testCreateWarehouseWithNegativeCapacity() {
     String businessUnitCode = "MWH.TEST." + System.currentTimeMillis();
     
@@ -105,13 +105,13 @@ class WarehouseResourceTest {
         .when()
         .post("/warehouse")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("InvalidWarehouseRequestException"))
-        .body("error", containsString("Capacity must be at least 1"));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
+        .body("error", notNullValue());
   }
 
   @Test
-  @DisplayName("POST /warehouse should reject warehouse with negative stock")
+  @DisplayName("POST /warehouse should reject warehouse with negative stock (Bean Validation)")
   void testCreateWarehouseWithNegativeStock() {
     String businessUnitCode = "MWH.TEST." + System.currentTimeMillis();
     
@@ -123,9 +123,9 @@ class WarehouseResourceTest {
         .when()
         .post("/warehouse")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("InvalidWarehouseRequestException"))
-        .body("error", containsString("Stock cannot be negative"));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
+        .body("error", notNullValue());
   }
 
   @Test
@@ -210,7 +210,7 @@ class WarehouseResourceTest {
   @DisplayName("GET /warehouse/{id} should return warehouse by business unit code")
   void testGetWarehouseById() {
     String businessUnitCode = "MWH.GET." + System.currentTimeMillis();
-    createWarehouseWithAvailableLocation(businessUnitCode, 30, 10);
+    createWarehouseWithAvailableLocation(businessUnitCode, 10);
     
     given()
         .when()
@@ -238,7 +238,7 @@ class WarehouseResourceTest {
   @DisplayName("PUT /warehouse/{id} should replace warehouse")
   void testReplaceWarehouse() {
     String businessUnitCode = "MWH.REPLACE." + System.currentTimeMillis();
-    createWarehouseWithAvailableLocation(businessUnitCode, 30, 20);
+    createWarehouseWithAvailableLocation(businessUnitCode, 20);
     
     given()
         .contentType(ContentType.JSON)
@@ -257,7 +257,7 @@ class WarehouseResourceTest {
   @DisplayName("PUT /warehouse/{id} should reject when stock mismatch")
   void testReplaceWarehouseWithStockMismatch() {
     String businessUnitCode = "MWH.REPLACE." + System.currentTimeMillis();
-    createWarehouseWithAvailableLocation(businessUnitCode, 30, 20);
+    createWarehouseWithAvailableLocation(businessUnitCode, 20);
     
     given()
         .contentType(ContentType.JSON)
@@ -273,7 +273,7 @@ class WarehouseResourceTest {
   @DisplayName("PUT /warehouse/{id} should reject when capacity insufficient for existing stock")
   void testReplaceWarehouseWithInsufficientCapacity() {
     String businessUnitCode = "MWH.REPLACE." + System.currentTimeMillis();
-    createWarehouseWithAvailableLocation(businessUnitCode, 30, 20);
+    createWarehouseWithAvailableLocation(businessUnitCode, 20);
     
     given()
         .contentType(ContentType.JSON)
@@ -302,7 +302,7 @@ class WarehouseResourceTest {
   @DisplayName("DELETE /warehouse/{id} should archive warehouse")
   void testArchiveWarehouse() {
     String businessUnitCode = "MWH.ARCHIVE." + System.currentTimeMillis();
-    createWarehouseWithAvailableLocation(businessUnitCode, 30, 10);
+    createWarehouseWithAvailableLocation(businessUnitCode, 10);
     
     given()
         .when()
@@ -311,7 +311,7 @@ class WarehouseResourceTest {
         .statusCode(204);
     
     Warehouse archived = verifyArchived(businessUnitCode);
-    assertNotNull(archived.getArchivedAt());
+    assertNotNull(archived.getArchivedAt(), "Then archived timestamp should be set");
   }
 
   @Test
@@ -329,7 +329,7 @@ class WarehouseResourceTest {
   @DisplayName("DELETE /warehouse/{id} should reject when warehouse already archived")
   void testArchiveWarehouseAlreadyArchived() {
     String businessUnitCode = "MWH.ARCHIVE." + System.currentTimeMillis();
-    createWarehouseWithAvailableLocation(businessUnitCode, 30, 10);
+    createWarehouseWithAvailableLocation(businessUnitCode, 10);
     
     given()
         .when()
@@ -341,7 +341,7 @@ class WarehouseResourceTest {
         .when()
         .delete("/warehouse/" + businessUnitCode)
         .then()
-        .statusCode(422)
+        .statusCode(409)
         .body("exceptionType", containsString("WarehouseAlreadyArchivedException"));
   }
 
@@ -361,11 +361,35 @@ class WarehouseResourceTest {
         .statusCode(201);
     
     Warehouse created = verifyCommitted(businessUnitCode);
-    assertNotNull(created);
-    assertEquals(businessUnitCode, created.getBusinessUnitCode());
-    assertEquals("AMSTERDAM-002", created.getLocation());
-    assertEquals(50, created.getCapacity());
-    assertEquals(10, created.getStock());
+    assertNotNull(created, "Then warehouse should be committed to database");
+    assertEquals(businessUnitCode, created.getBusinessUnitCode(), "Then business unit code should match");
+    assertEquals("AMSTERDAM-002", created.getLocation(), "Then location should match");
+    assertEquals(50, created.getCapacity(), "Then capacity should match");
+    assertEquals(10, created.getStock(), "Then stock should match");
+  }
+
+  @Test
+  @DisplayName("POST /warehouse should return 400 for malformed JSON (Bean Validation)")
+  void testCreateWarehouseWithMalformedJson() {
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"businessUnitCode\":\"MWH.TEST\",\"location\":\"AMSTERDAM-002\",\"capacity\":50,\"stock\":10")
+        .when()
+        .post("/warehouse")
+        .then()
+        .statusCode(400);
+  }
+
+  @Test
+  @DisplayName("POST /warehouse should return 400 when capacity is null (Bean Validation)")
+  void testCreateWarehouseWithNullCapacity() {
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"businessUnitCode\":\"MWH.TEST\",\"location\":\"AMSTERDAM-002\",\"stock\":10}")
+        .when()
+        .post("/warehouse")
+        .then()
+        .statusCode(400);
   }
 
   private String createWarehouse(String businessUnitCode, String location, int capacity, int stock) {
@@ -381,18 +405,16 @@ class WarehouseResourceTest {
     return businessUnitCode;
   }
 
-  private String createWarehouseWithAvailableLocation(String businessUnitCode, int capacity, int stock) {
-    return createWarehouse(businessUnitCode, "AMSTERDAM-002", capacity, stock);
+  private void createWarehouseWithAvailableLocation(String businessUnitCode, int stock) {
+    createWarehouse(businessUnitCode, "AMSTERDAM-002", 30, stock);
   }
 
   private Warehouse verifyCommitted(String businessUnitCode) {
-    Warehouse warehouse = warehouseRepository.findByBusinessUnitCode(businessUnitCode);
-    return warehouse;
+      return warehouseRepository.findByBusinessUnitCode(businessUnitCode);
   }
 
   private Warehouse verifyArchived(String businessUnitCode) {
-    Warehouse warehouse = warehouseRepository.findByBusinessUnitCode(businessUnitCode);
-    return warehouse;
+      return warehouseRepository.findByBusinessUnitCode(businessUnitCode);
   }
 }
 

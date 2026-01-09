@@ -11,6 +11,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a product.
+ * Products have a unique name and optional description and price.
+ */
 @Entity
 @Cacheable
 @Getter

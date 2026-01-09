@@ -2,8 +2,12 @@ package com.fulfilment.application.monolith.warehouses.domain.exceptions;
 
 import lombok.Getter;
 
+/**
+ * Exception thrown when replacement stock does not match existing stock.
+ */
+
 @Getter
-public class StockMismatchException extends WarehouseDomainException {
+public class StockMismatchException extends RuntimeException {
 
   private final int existingStock;
   private final int newStock;

@@ -1,5 +1,6 @@
 package com.fulfilment.application.monolith.warehouses.adapters.restapi;
 
+import com.fulfilment.application.monolith.common.ApiError;
 import com.fulfilment.application.monolith.warehouses.adapters.database.DbWarehouse;
 import com.fulfilment.application.monolith.warehouses.adapters.database.WarehouseRepository;
 import com.fulfilment.application.monolith.warehouses.adapters.restapi.dto.CreateWarehouseRequest;
@@ -28,12 +29,24 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.jbosslog.JBossLog;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+/**
+ * REST API resource for warehouse operations.
+ * Provides endpoints for creating, retrieving, replacing, and archiving warehouses.
+ */
 @Path("/warehouse")
 @ApplicationScoped
 @Produces("application/json")
 @Consumes("application/json")
 @JBossLog
+@Tag(name = "Warehouses", description = "Warehouse management operations")
 public class WarehouseResource {
 
   @Inject
@@ -52,6 +65,13 @@ public class WarehouseResource {
   WarehouseRepository warehouseRepository;
 
   @GET
+  @Operation(summary = "List all warehouses", description = "Retrieves a list of all warehouses in the system")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "200", description = "Successful operation",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Warehouse.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
   public List<Warehouse> listAllWarehousesUnits() {
     log.debug("Listing all warehouses");
     return warehouseRepository.listAll()
@@ -62,6 +82,21 @@ public class WarehouseResource {
 
   @POST
   @Transactional
+  @Operation(summary = "Create a new warehouse", description = "Creates a new warehouse with the provided details")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "201", description = "Warehouse created successfully",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Warehouse.class))),
+      @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "404", description = "Location not found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "409", description = "Business unit code already exists",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "422", description = "Business logic validation failed (capacity exceeded, limit reached, stock exceeds capacity)",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
   public Response createANewWarehouseUnit(@NotNull(message = "Request cannot be null.") @Valid CreateWarehouseRequest request) {
     log.debugf("Creating warehouse with business unit code '%s'", request.businessUnitCode());
     
@@ -81,7 +116,18 @@ public class WarehouseResource {
 
   @GET
   @Path("/{id}")
-  public Warehouse getAWarehouseUnitByID(@PathParam("id") String id) {
+  @Operation(summary = "Get warehouse by business unit code", description = "Retrieves a specific warehouse by its business unit code")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "200", description = "Warehouse found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Warehouse.class))),
+      @APIResponse(responseCode = "404", description = "Warehouse not found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
+  public Warehouse getAWarehouseUnitByID(
+      @Parameter(description = "Business unit code of the warehouse", required = true)
+      @PathParam("id") String id) {
     log.debugf("Getting warehouse with id '%s'", id);
     
     Warehouse warehouse = warehouseStore.findByBusinessUnitCode(id);
@@ -96,8 +142,25 @@ public class WarehouseResource {
   @PUT
   @Path("/{id}")
   @Transactional
-  public Warehouse replaceWarehouseUnit(@PathParam("id") String id, 
-                                        @NotNull(message = "Request cannot be null.") @Valid ReplaceWarehouseRequest request) {
+  @Operation(summary = "Replace warehouse", description = "Replaces an existing warehouse with new data")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "200", description = "Warehouse replaced successfully",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Warehouse.class))),
+      @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "404", description = "Warehouse or location not found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "409", description = "Optimistic locking conflict",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "422", description = "Business logic validation failed (stock mismatch, insufficient capacity, capacity exceeded)",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
+  public Warehouse replaceWarehouseUnit(
+      @Parameter(description = "Business unit code of the warehouse", required = true)
+      @PathParam("id") String id, 
+      @NotNull(message = "Request cannot be null.") @Valid ReplaceWarehouseRequest request) {
     log.debugf("Replacing warehouse with id '%s'", id);
     
     Warehouse warehouse = new Warehouse();
@@ -117,7 +180,19 @@ public class WarehouseResource {
   @DELETE
   @Path("/{id}")
   @Transactional
-  public Response archiveAWarehouseUnitByID(@PathParam("id") String id) {
+  @Operation(summary = "Archive warehouse", description = "Archives a warehouse by setting its archived timestamp")
+  @APIResponses(value = {
+      @APIResponse(responseCode = "204", description = "Warehouse archived successfully"),
+      @APIResponse(responseCode = "404", description = "Warehouse not found",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "409", description = "Warehouse already archived",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
+      @APIResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
+  })
+  public Response archiveAWarehouseUnitByID(
+      @Parameter(description = "Business unit code of the warehouse", required = true)
+      @PathParam("id") String id) {
     log.debugf("Archiving warehouse with id '%s'", id);
     
     Warehouse warehouse = warehouseStore.findByBusinessUnitCode(id);

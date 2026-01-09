@@ -10,6 +10,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a warehouse in the database.
+ * Maps to the 'warehouse' table.
+ */
 @Entity
 @Table(name = "warehouse")
 @Cacheable

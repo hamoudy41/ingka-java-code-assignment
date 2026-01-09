@@ -2,8 +2,11 @@ package com.fulfilment.application.monolith.warehouses.domain.exceptions;
 
 import lombok.Getter;
 
+/**
+ * Exception thrown when warehouse stock exceeds capacity.
+ */
 @Getter
-public class InsufficientCapacityException extends WarehouseDomainException {
+public class InsufficientCapacityException extends RuntimeException {
 
   private final int capacity;
   private final int requiredStock;

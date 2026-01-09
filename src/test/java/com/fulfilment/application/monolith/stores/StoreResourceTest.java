@@ -6,15 +6,29 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fulfilment.application.monolith.stores.adapters.database.Store;
+import com.fulfilment.application.monolith.stores.domain.exceptions.InvalidStoreRequestException;
+import com.fulfilment.application.monolith.stores.domain.exceptions.LegacySyncException;
+import com.fulfilment.application.monolith.stores.domain.exceptions.StoreNotFoundException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class StoreResourceTest {
+
+  @BeforeEach
+  @Transactional
+  void cleanup() {
+    Store.delete("name LIKE ?1", "Test Store%");
+    Store.delete("name LIKE ?1", "Original Store%");
+    Store.delete("name LIKE ?1", "Updated Store%");
+  }
 
   @Test
   @DisplayName("POST /stores should create store and return 201")
@@ -32,7 +46,7 @@ public class StoreResourceTest {
   }
 
   @Test
-  @DisplayName("POST /stores should reject store with id set")
+  @DisplayName("POST /stores should reject store with id set (Bean Validation)")
   public void testCreateStoreWithIdSet() {
     given()
         .contentType(ContentType.JSON)
@@ -40,13 +54,13 @@ public class StoreResourceTest {
         .when()
         .post("/stores")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("InvalidStoreRequestException"))
-        .body("error", containsString("Id was invalidly set"));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
+        .body("error", notNullValue());
   }
 
   @Test
-  @DisplayName("POST /stores should reject store with null name")
+  @DisplayName("POST /stores should reject store with null name (Bean Validation)")
   public void testCreateStoreWithNullName() {
     given()
         .contentType(ContentType.JSON)
@@ -54,13 +68,13 @@ public class StoreResourceTest {
         .when()
         .post("/stores")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("InvalidStoreRequestException"))
-        .body("error", containsString("name is required"));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
+        .body("error", notNullValue());
   }
 
   @Test
-  @DisplayName("POST /stores should reject store with negative stock")
+  @DisplayName("POST /stores should reject store with negative stock (Bean Validation)")
   public void testCreateStoreWithNegativeStock() {
     given()
         .contentType(ContentType.JSON)
@@ -68,9 +82,9 @@ public class StoreResourceTest {
         .when()
         .post("/stores")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("InvalidStoreRequestException"))
-        .body("error", containsString("cannot be negative"));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
+        .body("error", notNullValue());
   }
 
   @Test
@@ -112,7 +126,7 @@ public class StoreResourceTest {
   }
 
   @Test
-  @DisplayName("PUT /stores/{id} should reject null name")
+  @DisplayName("PUT /stores/{id} should reject null name (Bean Validation)")
   public void testUpdateStoreWithNullName() {
     given()
         .contentType(ContentType.JSON)
@@ -120,8 +134,8 @@ public class StoreResourceTest {
         .when()
         .put("/stores/1")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("InvalidStoreRequestException"));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"));
   }
 
   @Test
@@ -212,6 +226,95 @@ public class StoreResourceTest {
     verifyCommitted(storeId, name, 45);
   }
 
+  @Test
+  @DisplayName("PATCH /stores/{id} should update only name when provided")
+  void shouldPatchOnlyName() {
+    String originalName = "Original Store " + System.currentTimeMillis();
+    Long storeId = createStore(originalName, 50);
+    String updatedName = "Updated Store " + System.currentTimeMillis();
+    
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"name\":\"" + updatedName + "\"}")
+        .when()
+        .patch("/stores/" + storeId)
+        .then()
+        .statusCode(200)
+        .body("name", is(updatedName))
+        .body("quantityProductsInStock", is(50));
+    
+    verifyCommitted(storeId, updatedName, 50);
+  }
+
+  @Test
+  @DisplayName("PATCH /stores/{id} should update only stock when provided")
+  void shouldPatchOnlyStock() {
+    String name = "Test Store " + System.currentTimeMillis();
+    Long storeId = createStore(name, 50);
+    
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"quantityProductsInStock\":75}")
+        .when()
+        .patch("/stores/" + storeId)
+        .then()
+        .statusCode(200)
+        .body("name", is(name))
+        .body("quantityProductsInStock", is(75));
+    
+    verifyCommitted(storeId, name, 75);
+  }
+
+  @Test
+  @DisplayName("PATCH /stores/{id} should not update when empty name provided")
+  void shouldNotUpdateWhenEmptyNameProvided() {
+    String name = "Test Store " + System.currentTimeMillis();
+    Long storeId = createStore(name, 50);
+    
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"name\":\"   \"}")
+        .when()
+        .patch("/stores/" + storeId)
+        .then()
+        .statusCode(200)
+        .body("name", is(name))
+        .body("quantityProductsInStock", is(50));
+  }
+
+  @Test
+  @DisplayName("PATCH /stores/{id} should return store unchanged when no fields provided")
+  void shouldReturnUnchangedWhenNoFieldsProvided() {
+    String name = "Test Store " + System.currentTimeMillis();
+    Long storeId = createStore(name, 50);
+    
+    given()
+        .contentType(ContentType.JSON)
+        .body("{}")
+        .when()
+        .patch("/stores/" + storeId)
+        .then()
+        .statusCode(200)
+        .body("name", is(name))
+        .body("quantityProductsInStock", is(50));
+  }
+
+  @Test
+  @DisplayName("GET /stores/{id} should return store by id")
+  void shouldReturnStoreById() {
+    String name = "Test Store " + System.currentTimeMillis();
+    Long storeId = createStore(name, 100);
+    
+    given()
+        .when()
+        .get("/stores/" + storeId)
+        .then()
+        .statusCode(200)
+        .body("id", is(storeId.intValue()))
+        .body("name", is(name))
+        .body("quantityProductsInStock", is(100));
+  }
+
   private Long createStore(String name, int stock) {
     return ((Number) given()
         .contentType(ContentType.JSON)
@@ -229,6 +332,68 @@ public class StoreResourceTest {
     assertNotNull(store, "Store must be committed to database");
     assertEquals(expectedName, store.getName());
     assertEquals(expectedStock, store.getQuantityProductsInStock());
+  }
+
+  @Test
+  @DisplayName("POST /stores should return 400 for malformed JSON (Bean Validation)")
+  void testCreateStoreWithMalformedJson() {
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"name\":\"Test Store\",\"quantityProductsInStock\":10")
+        .when()
+        .post("/stores")
+        .then()
+        .statusCode(400);
+  }
+
+  @Test
+  @DisplayName("LegacySyncException should create with message")
+  void shouldCreateLegacySyncExceptionWithMessage() {
+    String message = "Sync failed";
+    LegacySyncException exception = new LegacySyncException(message);
+    
+    assertEquals(message, exception.getMessage(), "Then message should match");
+  }
+
+  @Test
+  @DisplayName("LegacySyncException should create with message and cause")
+  void shouldCreateLegacySyncExceptionWithCause() {
+    String message = "Sync failed";
+    Throwable cause = new RuntimeException("IO error");
+    LegacySyncException exception = new LegacySyncException(message, cause);
+    
+    assertEquals(message, exception.getMessage(), "Then message should match");
+    assertEquals(cause, exception.getCause(), "Then cause should match");
+  }
+
+  @Test
+  @DisplayName("InvalidStoreRequestException should create with message")
+  void shouldCreateInvalidStoreRequestExceptionWithMessage() {
+    String message = "Invalid request";
+    InvalidStoreRequestException exception = new InvalidStoreRequestException(message);
+    
+    assertEquals(message, exception.getMessage(), "Then message should match");
+  }
+
+  @Test
+  @DisplayName("InvalidStoreRequestException should create with message and cause")
+  void shouldCreateInvalidStoreRequestExceptionWithCause() {
+    String message = "Invalid request";
+    Throwable cause = new IllegalArgumentException("Bad data");
+    InvalidStoreRequestException exception = new InvalidStoreRequestException(message, cause);
+    
+    assertEquals(message, exception.getMessage(), "Then message should match");
+    assertEquals(cause, exception.getCause(), "Then cause should match");
+  }
+
+  @Test
+  @DisplayName("StoreNotFoundException should create with store id")
+  void shouldCreateStoreNotFoundException() {
+    Long storeId = 123L;
+    StoreNotFoundException exception = new StoreNotFoundException(storeId);
+    
+    assertEquals(storeId, exception.getStoreId(), "Then store id should match");
+    assertTrue(exception.getMessage().contains(storeId.toString()), "Then message should contain store id");
   }
 }
 

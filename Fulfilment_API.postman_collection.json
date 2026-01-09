@@ -11,6 +11,23 @@
 			"item": [
 				{
 					"name": "List All Stores",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -18,19 +35,6 @@
 							"raw": "{{baseUrl}}/stores",
 							"host": ["{{baseUrl}}"],
 							"path": ["stores"]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Store by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/stores/{{storeId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["stores", "{{storeId}}"]
 						}
 					},
 					"response": []
@@ -50,6 +54,7 @@
 									"    pm.expect(jsonData).to.have.property('id');",
 									"    pm.expect(jsonData).to.have.property('name');",
 									"    pm.expect(jsonData).to.have.property('quantityProductsInStock');",
+									"    pm.expect(jsonData.quantityProductsInStock).to.equal(100);",
 									"    pm.collectionVariables.set('storeId', jsonData.id);",
 									"});"
 								],
@@ -78,17 +83,53 @@
 					"response": []
 				},
 				{
+					"name": "Get Store by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has store data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('quantityProductsInStock');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Create Store - Invalid (ID set)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
-									"pm.test(\"Error message indicates ID was invalidly set\", function () {",
+									"pm.test(\"Error response has correct structure\", function () {",
 									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('exceptionType');",
+									"    pm.expect(jsonData).to.have.property('code');",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData).to.have.property('timestamp');",
 									"    pm.expect(jsonData.error).to.include('Id was invalidly set');",
 									"});"
 								],
@@ -123,8 +164,8 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
 									"pm.test(\"Error message indicates name is required\", function () {",
 									"    var jsonData = pm.response.json();",
@@ -162,8 +203,8 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
 									"pm.test(\"Error message indicates stock cannot be negative\", function () {",
 									"    var jsonData = pm.response.json();",
@@ -274,6 +315,45 @@
 					"response": []
 				},
 				{
+					"name": "Update Store - Invalid (Blank Name)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error message indicates name is required\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('name');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"\",\n    \"quantityProductsInStock\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Patch Store - Update Name Only",
 					"event": [
 						{
@@ -286,6 +366,7 @@
 									"pm.test(\"Only name was updated\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.name).to.equal('Patched Store Name');",
+									"    pm.expect(jsonData.quantityProductsInStock).to.equal(200);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -325,6 +406,7 @@
 									"pm.test(\"Only stock was updated\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.quantityProductsInStock).to.equal(150);",
+									"    pm.expect(jsonData.name).to.equal('Patched Store Name');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -358,8 +440,12 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error message indicates stock cannot be negative\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('negative');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -421,6 +507,10 @@
 								"exec": [
 									"pm.test(\"Status code is 404\", function () {",
 									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error message indicates store not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('does not exist');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -445,6 +535,23 @@
 			"item": [
 				{
 					"name": "List All Products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -452,19 +559,6 @@
 							"raw": "{{baseUrl}}/product",
 							"host": ["{{baseUrl}}"],
 							"path": ["product"]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Product by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/product/{{productId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["product", "{{productId}}"]
 						}
 					},
 					"response": []
@@ -483,6 +577,9 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('id');",
 									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData.name).to.include('Test Product');",
+									"    pm.expect(jsonData.price).to.equal(29.99);",
+									"    pm.expect(jsonData.stock).to.equal(50);",
 									"    pm.collectionVariables.set('productId', jsonData.id);",
 									"});"
 								],
@@ -506,6 +603,37 @@
 							"raw": "{{baseUrl}}/product",
 							"host": ["{{baseUrl}}"],
 							"path": ["product"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has product data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "{{productId}}"]
 						}
 					},
 					"response": []
@@ -563,6 +691,7 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.name).to.equal('Updated Product Name');",
 									"    pm.expect(jsonData.price).to.equal(39.99);",
+									"    pm.expect(jsonData.stock).to.equal(75);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -702,6 +831,10 @@
 								"exec": [
 									"pm.test(\"Status code is 404\", function () {",
 									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error message indicates product not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('does not exist');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -726,6 +859,23 @@
 			"item": [
 				{
 					"name": "List All Warehouses",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -733,19 +883,6 @@
 							"raw": "{{baseUrl}}/warehouse",
 							"host": ["{{baseUrl}}"],
 							"path": ["warehouse"]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Warehouse by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
 						}
 					},
 					"response": []
@@ -767,6 +904,9 @@
 									"    pm.expect(jsonData).to.have.property('capacity');",
 									"    pm.expect(jsonData).to.have.property('stock');",
 									"    pm.expect(jsonData).to.have.property('creationAt');",
+									"    pm.expect(jsonData.capacity).to.equal(50);",
+									"    pm.expect(jsonData.stock).to.equal(10);",
+									"    pm.expect(jsonData.location).to.equal('AMSTERDAM-002');",
 									"    pm.collectionVariables.set('warehouseBusinessUnitCode', jsonData.businessUnitCode);",
 									"});"
 								],
@@ -795,14 +935,47 @@
 					"response": []
 				},
 				{
+					"name": "Get Warehouse by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response has warehouse data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('businessUnitCode');",
+									"    pm.expect(jsonData).to.have.property('location');",
+									"    pm.expect(jsonData).to.have.property('capacity');",
+									"    pm.expect(jsonData).to.have.property('stock');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Create Warehouse - Invalid (ID set)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
 									"pm.test(\"Error message indicates ID was invalidly set\", function () {",
 									"    var jsonData = pm.response.json();",
@@ -840,8 +1013,8 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
 									"pm.test(\"Error message indicates business unit code is required\", function () {",
 									"    var jsonData = pm.response.json();",
@@ -879,8 +1052,8 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
 									"pm.test(\"Error message indicates location is required\", function () {",
 									"    var jsonData = pm.response.json();",
@@ -918,8 +1091,8 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
 									"pm.test(\"Error message indicates capacity must be at least 1\", function () {",
 									"    var jsonData = pm.response.json();",
@@ -957,8 +1130,8 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
 									"pm.test(\"Error message indicates stock cannot be negative\", function () {",
 									"    var jsonData = pm.response.json();",
@@ -1159,6 +1332,7 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.capacity).to.equal(60);",
 									"    pm.expect(jsonData.stock).to.equal(10);",
+									"    pm.expect(jsonData.location).to.equal('AMSTERDAM-002');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1220,6 +1394,45 @@
 							"raw": "{{baseUrl}}/warehouse/MWH.NONEXISTENT",
 							"host": ["{{baseUrl}}"],
 							"path": ["warehouse", "MWH.NONEXISTENT"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Replace Warehouse - Invalid (Blank Location)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error message indicates location is required\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Location');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"location\": \"\",\n    \"capacity\": 60,\n    \"stock\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
 						}
 					},
 					"response": []
@@ -1398,6 +1611,10 @@
 								"exec": [
 									"pm.test(\"Status code is 404\", function () {",
 									"    pm.response.to.have.status(404);",
+									"});",
+									"pm.test(\"Error message indicates warehouse not found\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('does not exist');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1461,4 +1678,3 @@
 		}
 	]
 }
-

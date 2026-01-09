@@ -78,4 +78,114 @@ Navigate to:
 
 <http://localhost:8080/index.html>
 
+---
+
+## Testing & Quality Assurance
+
+### Running Tests
+
+Execute the complete test suite:
+
+```sh
+./mvnw test
+```
+
+Run tests with coverage report:
+
+```sh
+./mvnw clean verify
+```
+
+The coverage report will be generated at `target/jacoco-report/index.html`.
+
+### Test Coverage
+
+The project uses **JaCoCo** for code coverage analysis, integrated via Quarkus. Coverage is configured to:
+- Track all application code in `com/fulfilment/**`
+- Exclude generated code and dependencies
+- Generate HTML reports for detailed analysis
+- Maintain coverage targets above 80%
+
+Configuration is managed in `application.properties`:
+
+```properties
+%test.quarkus.jacoco.enabled=true
+%test.quarkus.jacoco.report-location=target/jacoco-report
+%test.quarkus.jacoco.includes=com/fulfilment/**
+```
+
+### Test Categories
+
+**Unit & Integration Tests**
+- Repository layer tests (data access, persistence)
+- Use case tests (business logic, validation rules)
+- Resource tests (REST API endpoints, request/response handling)
+- Exception mapper tests (error handling, status codes)
+- Service tests (transaction synchronization, legacy system integration)
+
+**Edge Cases Covered**
+- Input validation (null, empty, boundary values)
+- Business rule violations (capacity limits, stock constraints)
+- Concurrency scenarios (optimistic locking, version conflicts)
+- Error conditions (not found, duplicates, conflicts)
+
+**Test Isolation**
+- Tests use `@BeforeEach` cleanup for isolation
+- Each test operates independently
+- Database state is reset between test runs
+
+### API Testing
+
+**Postman Collection**
+
+A comprehensive Postman collection is provided in `Fulfilment_API.postman_collection.json` covering:
+- All CRUD operations for Stores, Products, and Warehouses
+- Success scenarios with valid data
+- Error scenarios (validation failures, not found, conflicts)
+- Edge cases (boundary values, business logic violations)
+- Pre-configured collection variables
+
+**To use the Postman collection:**
+1. Import `Fulfilment_API.postman_collection.json` into Postman
+2. Ensure the application is running (`./mvnw quarkus:dev`)
+3. The base URL is pre-configured to `http://localhost:8080`
+4. Run individual requests or the entire collection
+
+**Swagger UI**
+
+Interactive API documentation is available via Swagger UI:
+
+```
+http://localhost:8080/swagger-ui
+```
+
+Features:
+- Complete OpenAPI specification for all endpoints
+- Interactive "Try it out" functionality
+- Detailed request/response schemas
+- All possible HTTP status codes documented
+- Organized by domain (Warehouses, Stores, Products)
+
+**OpenAPI Specification**
+
+Download the OpenAPI spec:
+- JSON format: `http://localhost:8080/openapi`
+- YAML format: `http://localhost:8080/openapi?format=yaml`
+
+### Exception Handling & Status Codes
+
+The API uses consistent HTTP status codes:
+- `200 OK` - Successful GET/PUT/PATCH operations
+- `201 Created` - Successful resource creation
+- `204 No Content` - Successful DELETE operations
+- `400 Bad Request` - Invalid input (validation failures)
+- `404 Not Found` - Resource not found
+- `409 Conflict` - Business conflicts (duplicates, already archived)
+- `422 Unprocessable Entity` - Business logic violations
+- `500 Internal Server Error` - Unexpected server errors
+
+All error responses follow a standardized format with `exceptionType`, `code`, `error`, and `timestamp` fields.
+
+---
+
 Have fun, and join the team of contributors!

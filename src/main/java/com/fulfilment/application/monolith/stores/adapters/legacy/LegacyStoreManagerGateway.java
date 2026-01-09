@@ -6,6 +6,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Gateway for interacting with the legacy store management system.
+ * Simulates legacy system integration by writing store data to temporary files.
+ */
 @ApplicationScoped
 public class LegacyStoreManagerGateway {
 

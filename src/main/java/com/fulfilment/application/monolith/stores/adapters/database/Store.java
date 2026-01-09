@@ -9,6 +9,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a store using Panache.
+ * Stores have a unique name and track product stock quantity.
+ * Includes optimistic locking via version field.
+ */
 @Entity
 @Cacheable
 @Getter
