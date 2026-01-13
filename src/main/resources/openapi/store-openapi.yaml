@@ -1,0 +1,310 @@
+openapi: 3.0.0
+info:
+  title: Store API
+  description: API for managing stores and synchronizing them with a legacy system
+  version: 1.0.0
+
+paths:
+  /stores:
+    get:
+      summary: List all stores
+      responses:
+        '200':
+          description: A list of stores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StoreResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      summary: Create a new store
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStoreRequest'
+      responses:
+        '201':
+          description: Store created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreResponse'
+        '409':
+          description: Store already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal server error or legacy sync failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /stores/{id}:
+    get:
+      summary: Get store by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the store to get
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Store found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreResponse'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    put:
+      summary: Update store (full replacement)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the store to update
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStoreRequest'
+      responses:
+        '200':
+          description: Store updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreResponse'
+        '409':
+          description: Store already exists or optimistic lock conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Optimistic locking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal server error or legacy sync failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      summary: Partially update store
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the store to patch
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchStoreRequest'
+      responses:
+        '200':
+          description: Store updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreResponse'
+        '409':
+          description: Store already exists or optimistic lock conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Optimistic locking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal server error or legacy sync failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      summary: Delete store
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the store to delete
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Store deleted
+        '404':
+          description: Store not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+components:
+  schemas:
+    StoreResponse:
+      type: object
+      required: [id, name, quantityProductsInStock, version]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 123
+        name:
+          type: string
+          example: "Test Store 1700000000"
+        quantityProductsInStock:
+          type: integer
+          example: 100
+        version:
+          type: integer
+          format: int64
+          example: 1
+
+    CreateStoreRequest:
+      type: object
+      required: [name, quantityProductsInStock]
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Must be null on create
+        name:
+          type: string
+          minLength: 1
+          description: Must be unique across stores
+        quantityProductsInStock:
+          type: integer
+          minimum: 0
+
+    UpdateStoreRequest:
+      type: object
+      required: [name, quantityProductsInStock]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Must be unique across stores
+        quantityProductsInStock:
+          type: integer
+          minimum: 0
+
+    PatchStoreRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          minLength: 1
+        quantityProductsInStock:
+          type: integer
+          minimum: 0
+          nullable: true
+
+    ApiError:
+      type: object
+      properties:
+        exceptionType:
+          type: string
+        code:
+          type: integer
+        error:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Violation'
+
+    Violation:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+        invalidValue:
+          type: string
+

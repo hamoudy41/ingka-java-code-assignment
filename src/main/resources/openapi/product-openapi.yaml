@@ -1,22 +1,22 @@
 openapi: 3.0.0
 info:
-  title: Warehouse API
-  description: API for managing warehouses
+  title: Product API
+  description: API for managing products
   version: 1.0.0
 
 paths:
-  /warehouse:
+  /product:
     get:
-      summary: List all warehouses units
+      summary: List all products
       responses:
         '200':
-          description: A list of warehouse units
+          description: A list of products
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/WarehouseResponse'
+                  $ref: '#/components/schemas/ProductResponse'
         '500':
           description: Internal server error
           content:
@@ -24,40 +24,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
     post:
-      summary: Create a new warehouse unit
+      summary: Create a new product
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateWarehouseRequest'
+              $ref: '#/components/schemas/CreateProductRequest'
       responses:
         '201':
-          description: Warehouse unit created
+          description: Product created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WarehouseResponse'
+                $ref: '#/components/schemas/ProductResponse'
+        '409':
+          description: Product already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
         '400':
           description: Invalid request data (validation failed)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: Location not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '409':
-          description: Business unit code already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Business logic validation failed (capacity exceeded, limit reached, stock exceeds capacity)
           content:
             application/json:
               schema:
@@ -69,25 +57,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
-  /warehouse/{id}:
+  /product/{id}:
     get:
-      summary: Get a warehouse unit by ID
+      summary: Get product by ID
       parameters:
         - name: id
           in: path
           required: true
-          description: ID of the warehouse unit to get
+          description: ID of the product to get
           schema:
-            type: string
+            type: integer
+            format: int64
       responses:
         '200':
-          description: Warehouse unit found
+          description: Product found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WarehouseResponse'
+                $ref: '#/components/schemas/ProductResponse'
         '404':
-          description: Warehouse unit not found
+          description: Product not found
           content:
             application/json:
               schema:
@@ -99,47 +88,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
     put:
-      summary: Replace a warehouse unit by ID
+      summary: Update product
       parameters:
         - name: id
           in: path
           required: true
-          description: Business unit code of the warehouse unit to replace
+          description: ID of the product to update
           schema:
-            type: string
+            type: integer
+            format: int64
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReplaceWarehouseRequest'
+              $ref: '#/components/schemas/UpdateProductRequest'
       responses:
         '200':
-          description: Warehouse unit replaced
+          description: Product updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WarehouseResponse'
-        '400':
-          description: Invalid request data (validation failed)
+                $ref: '#/components/schemas/ProductResponse'
+        '409':
+          description: Product already exists
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '404':
-          description: Warehouse or location not found
+          description: Product not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-        '409':
-          description: Optimistic locking conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Business logic validation failed (stock mismatch, insufficient capacity, capacity exceeded)
+        '400':
+          description: Invalid request data (validation failed)
           content:
             application/json:
               schema:
@@ -151,25 +135,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
     delete:
-      summary: Archive a warehouse unit by ID
+      summary: Delete product
       parameters:
         - name: id
           in: path
           required: true
-          description: ID of the warehouse unit to archive
+          description: ID of the product to delete
           schema:
-            type: string
+            type: integer
+            format: int64
       responses:
         '204':
-          description: Warehouse unit archived
+          description: Product deleted
         '404':
-          description: Warehouse unit not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '409':
-          description: Warehouse already archived
+          description: Product not found
           content:
             application/json:
               schema:
@@ -183,75 +162,80 @@ paths:
 
 components:
   schemas:
-    CreateWarehouseRequest:
+    CreateProductRequest:
       type: object
-      required: [businessUnitCode, location, capacity, stock]
+      required: [name]
       properties:
         id:
-          type: string
+          type: integer
+          format: int64
           nullable: true
+          example: 456
           description: Must be null on create
-        businessUnitCode:
+        name:
           type: string
-          example: "MWH.TEST.1700000000"
+          example: "Test Product 1700000000"
           minLength: 1
-          description: Must be unique across warehouses
-        location:
+          description: Must be unique across products
+        description:
           type: string
-          example: "AMSTERDAM-002"
-          minLength: 1
-        capacity:
-          type: integer
-          example: 100
-          minimum: 1
+          nullable: true
+          example: "Test product description"
+        price:
+          type: number
+          format: double
+          nullable: true
+          example: 29.99
         stock:
           type: integer
           example: 50
-          minimum: 0
 
-    ReplaceWarehouseRequest:
+    UpdateProductRequest:
       type: object
-      required: [location, capacity, stock]
+      required: [name]
       properties:
-        location:
+        name:
           type: string
-          example: "AMSTERDAM-002"
+          example: "Test Product 1700000000"
           minLength: 1
-        capacity:
-          type: integer
-          example: 100
-          minimum: 1
+          description: Must be unique across products
+        description:
+          type: string
+          nullable: true
+          example: "Test product description"
+        price:
+          type: number
+          format: double
+          nullable: true
+          example: 29.99
         stock:
           type: integer
           example: 50
-          minimum: 0
 
-    WarehouseResponse:
+    ProductResponse:
       type: object
-      required: [businessUnitCode, location]
+      required: [id, name, stock]
       properties:
-        businessUnitCode:
-          type: string
-          example: "MWH.TEST.1700000000"
-        location:
-          type: string
-          example: "AMSTERDAM-002"
-        capacity:
+        id:
           type: integer
-          example: 100
+          format: int64
+          nullable: false
+          example: 456
+        name:
+          type: string
+          example: "Test Product 1700000000"
+        description:
+          type: string
           nullable: true
+          example: "Test product description"
+        price:
+          type: number
+          format: double
+          nullable: true
+          example: 29.99
         stock:
           type: integer
           example: 50
-          nullable: true
-        creationAt:
-          type: string
-          format: date-time
-          nullable: true
-        archivedAt:
-          type: string
-          format: date-time
-          nullable: true
 
     ApiError:
       type: object
@@ -279,3 +263,4 @@ components:
           type: string
         invalidValue:
           type: string
+

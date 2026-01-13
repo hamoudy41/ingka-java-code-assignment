@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fulfilment.application.monolith.warehouses.domain.exceptions.WarehouseNotFoundException;
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -90,7 +91,7 @@ class WarehouseRepositoryTest {
   void shouldThrowExceptionWhenUpdatingNonExistentWarehouse() {
     Warehouse warehouse = createTestWarehouse("MWH.EDGE.NONEXISTENT", "ZWOLLE-002", 30, 10);
     
-    assertThrows(RuntimeException.class, () -> {
+    assertThrows(WarehouseNotFoundException.class, () -> {
       warehouseRepository.update(warehouse);
     }, "Then exception should be thrown when updating non-existent warehouse");
   }
@@ -100,7 +101,7 @@ class WarehouseRepositoryTest {
   void shouldThrowExceptionWhenRemovingNonExistentWarehouse() {
     Warehouse warehouse = createTestWarehouse("MWH.EDGE.NONEXISTENT", "ZWOLLE-002", 30, 10);
     
-    assertThrows(RuntimeException.class, () -> {
+    assertThrows(WarehouseNotFoundException.class, () -> {
       warehouseRepository.remove(warehouse);
     }, "Then exception should be thrown when removing non-existent warehouse");
   }

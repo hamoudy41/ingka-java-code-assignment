@@ -2,9 +2,13 @@ package com.fulfilment.application.monolith.common;
 
 import com.fulfilment.application.monolith.location.InvalidLocationIdentifierException;
 import com.fulfilment.application.monolith.location.LocationNotFoundException;
+import com.fulfilment.application.monolith.products.domain.exceptions.ProductAlreadyExistsException;
+import com.fulfilment.application.monolith.products.domain.exceptions.ProductNotFoundException;
+import com.fulfilment.application.monolith.stores.domain.exceptions.StoreAlreadyExistsException;
 import com.fulfilment.application.monolith.stores.domain.exceptions.InvalidStoreRequestException;
 import com.fulfilment.application.monolith.stores.domain.exceptions.LegacySyncException;
 import com.fulfilment.application.monolith.stores.domain.exceptions.StoreNotFoundException;
+import com.fulfilment.application.monolith.stores.domain.exceptions.InvalidStoreSnapshotException;
 import com.fulfilment.application.monolith.warehouses.domain.exceptions.DuplicateBusinessUnitCodeException;
 import com.fulfilment.application.monolith.warehouses.domain.exceptions.InsufficientCapacityException;
 import com.fulfilment.application.monolith.warehouses.domain.exceptions.LocationCapacityExceededException;
@@ -86,6 +90,18 @@ public class GlobalExceptionMapper {
   }
 
   @ServerExceptionMapper
+  public Response handleProductAlreadyExists(ProductAlreadyExistsException ex) {
+    log.warnf("Product already exists: %s", ex.getMessage());
+    return buildResponse(ex, 409);
+  }
+
+  @ServerExceptionMapper
+  public Response handleStoreAlreadyExists(StoreAlreadyExistsException ex) {
+    log.warnf("Store already exists: %s", ex.getMessage());
+    return buildResponse(ex, 409);
+  }
+
+  @ServerExceptionMapper
   public Response handleWarehouseAlreadyArchived(WarehouseAlreadyArchivedException ex) {
     log.warnf("Warehouse already archived: %s", ex.getMessage());
     return buildResponse(ex, 409);
@@ -125,6 +141,18 @@ public class GlobalExceptionMapper {
   public Response handleInvalidStoreRequest(InvalidStoreRequestException ex) {
     log.warnf("Invalid store request: %s", ex.getMessage());
     return buildResponse(ex, 422);
+  }
+
+  @ServerExceptionMapper
+  public Response handleInvalidStoreSnapshot(InvalidStoreSnapshotException ex) {
+    log.errorf(ex, "Invalid store snapshot state");
+    return buildResponse(ex, 500);
+  }
+
+  @ServerExceptionMapper
+  public Response handleProductNotFound(ProductNotFoundException ex) {
+    log.warnf("Product not found: %s", ex.getMessage());
+    return buildResponse(ex, 404);
   }
 
   @ServerExceptionMapper

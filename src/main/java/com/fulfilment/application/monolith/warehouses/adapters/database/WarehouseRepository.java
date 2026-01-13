@@ -1,5 +1,6 @@
 package com.fulfilment.application.monolith.warehouses.adapters.database;
 
+import com.fulfilment.application.monolith.warehouses.domain.exceptions.WarehouseNotFoundException;
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
@@ -36,10 +37,10 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
 
   /**
    * Updates an existing warehouse in the database.
-   * Throws RuntimeException if warehouse is not found.
+   * Throws {@link WarehouseNotFoundException} if warehouse is not found.
    *
    * @param warehouse the warehouse domain entity with updated values
-   * @throws RuntimeException if warehouse with the business unit code is not found
+   * @throws WarehouseNotFoundException if warehouse with the business unit code is not found
    */
   @Override
   public void update(Warehouse warehouse) {
@@ -48,7 +49,7 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
         .firstResultOptional()
         .orElseThrow(() -> {
           log.errorf("Warehouse not found for update: '%s'", warehouse.getBusinessUnitCode());
-          return new RuntimeException("Warehouse not found for update");
+          return new WarehouseNotFoundException(warehouse.getBusinessUnitCode());
         });
     
     existing.setLocation(warehouse.getLocation());
@@ -68,10 +69,10 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
 
   /**
    * Removes a warehouse from the database.
-   * Throws RuntimeException if warehouse is not found.
+   * Throws {@link WarehouseNotFoundException} if warehouse is not found.
    *
    * @param warehouse the warehouse domain entity to remove
-   * @throws RuntimeException if warehouse with the business unit code is not found
+   * @throws WarehouseNotFoundException if warehouse with the business unit code is not found
    */
   @Override
   public void remove(Warehouse warehouse) {
@@ -80,7 +81,7 @@ public class WarehouseRepository implements WarehouseStore, PanacheRepository<Db
         .firstResultOptional()
         .orElseThrow(() -> {
           log.errorf("Warehouse not found for removal: '%s'", warehouse.getBusinessUnitCode());
-          return new RuntimeException("Warehouse not found for removal");
+          return new WarehouseNotFoundException(warehouse.getBusinessUnitCode());
         });
     delete(dbWarehouse);
     log.infof("Successfully removed warehouse with business unit code '%s'", warehouse.getBusinessUnitCode());

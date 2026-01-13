@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -75,7 +76,21 @@ class WarehouseResourceTest {
         .then()
         .statusCode(400)
         .body("exceptionType", containsString("ConstraintViolationException"))
-        .body("error", notNullValue());
+        .body("error", notNullValue())
+        .body("violations.size()", greaterThan(0));
+  }
+
+  @Test
+  @DisplayName("POST /warehouse should return 400 when request body is null (Bean Validation)")
+  void testCreateWarehouseWithNullBody() {
+    given()
+        .contentType(ContentType.JSON)
+        .body("null")
+        .when()
+        .post("/warehouse")
+        .then()
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"));
   }
 
   @Test
@@ -251,6 +266,22 @@ class WarehouseResourceTest {
         .body("location", is("AMSTERDAM-002"))
         .body("capacity", is(50))
         .body("stock", is(20));
+  }
+
+  @Test
+  @DisplayName("PUT /warehouse/{id} should return 400 when request body is null (Bean Validation)")
+  void testReplaceWarehouseWithNullBody() {
+    String businessUnitCode = "MWH.REPLACE.NULLBODY." + System.currentTimeMillis();
+    createWarehouseWithAvailableLocation(businessUnitCode, 10);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body("null")
+        .when()
+        .put("/warehouse/" + businessUnitCode)
+        .then()
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"));
   }
 
   @Test

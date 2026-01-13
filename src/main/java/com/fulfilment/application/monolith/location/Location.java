@@ -1,8 +1,8 @@
-package com.fulfilment.application.monolith.warehouses.domain.models;
+package com.fulfilment.application.monolith.location;
 
 /**
- * Domain record representing a location with its constraints.
- * 
+ * Location model representing a location with its operational constraints.
+ *
  * @param identification unique location identifier
  * @param maxNumberOfWarehouses maximum number of warehouses allowed at this location
  * @param maxCapacity maximum capacity per warehouse at this location
@@ -12,3 +12,4 @@ public record Location(
     int maxNumberOfWarehouses,
     int maxCapacity
 ) {}
+

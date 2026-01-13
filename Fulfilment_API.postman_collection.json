@@ -645,11 +645,12 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
-									"pm.test(\"Error message indicates ID was invalidly set\", function () {",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
 									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
 									"    pm.expect(jsonData.error).to.include('Id was invalidly set');",
 									"});"
 								],
@@ -725,11 +726,12 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 422\", function () {",
-									"    pm.response.to.have.status(422);",
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
 									"});",
-									"pm.test(\"Error message indicates name was not set\", function () {",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
 									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
 									"    pm.expect(jsonData.error).to.include('Product Name was not set');",
 									"});"
 								],

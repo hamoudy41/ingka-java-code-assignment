@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fulfilment.application.monolith.stores.adapters.database.Store;
+import com.fulfilment.application.monolith.stores.domain.exceptions.StoreAlreadyExistsException;
 import com.fulfilment.application.monolith.stores.domain.exceptions.InvalidStoreRequestException;
 import com.fulfilment.application.monolith.stores.domain.exceptions.LegacySyncException;
 import com.fulfilment.application.monolith.stores.domain.exceptions.StoreNotFoundException;
@@ -43,6 +44,30 @@ public class StoreResourceTest {
         .body("name", is("Test Store"))
         .body("quantityProductsInStock", is(10))
         .body("id", notNullValue());
+  }
+
+  @Test
+  @DisplayName("POST /stores should return 409 when store name already exists")
+  public void testCreateStoreDuplicateName() {
+    String name = "Test Store DUP " + System.currentTimeMillis();
+    
+    given()
+        .contentType(ContentType.JSON)
+        .body(String.format("{\"name\":\"%s\",\"quantityProductsInStock\":10}", name))
+        .when()
+        .post("/stores")
+        .then()
+        .statusCode(201);
+    
+    given()
+        .contentType(ContentType.JSON)
+        .body(String.format("{\"name\":\"%s\",\"quantityProductsInStock\":10}", name))
+        .when()
+        .post("/stores")
+        .then()
+        .statusCode(409)
+        .body("exceptionType", containsString(StoreAlreadyExistsException.class.getName()))
+        .body("error", containsString("already exists"));
   }
 
   @Test
@@ -110,6 +135,39 @@ public class StoreResourceTest {
         .body("name", is("Updated Store"))
         .body("quantityProductsInStock", is(25))
         .body("id", is(storeId.intValue()));
+  }
+
+  @Test
+  @DisplayName("PUT /stores/{id} should return 409 when updating store name to existing name")
+  public void testUpdateStoreDuplicateName() {
+    Long store1Id = createStore("Test Store DUP1 " + System.currentTimeMillis(), 10);
+    String store2Name = "Test Store DUP2 " + System.currentTimeMillis();
+    createStore(store2Name, 10);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(String.format("{\"name\":\"%s\",\"quantityProductsInStock\":10}", store2Name))
+        .when()
+        .put("/stores/" + store1Id)
+        .then()
+        .statusCode(409)
+        .body("exceptionType", containsString(StoreAlreadyExistsException.class.getName()))
+        .body("error", containsString("already exists"));
+  }
+
+  @Test
+  @DisplayName("PUT /stores/{id} should return 400 when request body is null (Bean Validation)")
+  public void testUpdateStoreWithNullBody() {
+    Long storeId = createStore("Test Store NULLBODY " + System.currentTimeMillis(), 10);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body("null")
+        .when()
+        .put("/stores/" + storeId)
+        .then()
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"));
   }
 
   @Test
@@ -247,6 +305,39 @@ public class StoreResourceTest {
   }
 
   @Test
+  @DisplayName("PATCH /stores/{id} should return 409 when patching store name to existing name")
+  void shouldReturn409WhenPatchingDuplicateName() {
+    Long store1Id = createStore("Test Store PATCHDUP1 " + System.currentTimeMillis(), 10);
+    String store2Name = "Test Store PATCHDUP2 " + System.currentTimeMillis();
+    createStore(store2Name, 10);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"name\":\"" + store2Name + "\"}")
+        .when()
+        .patch("/stores/" + store1Id)
+        .then()
+        .statusCode(409)
+        .body("exceptionType", containsString(StoreAlreadyExistsException.class.getName()))
+        .body("error", containsString("already exists"));
+  }
+
+  @Test
+  @DisplayName("PATCH /stores/{id} should return 400 when request body is null (Bean Validation)")
+  void shouldReturn400WhenPatchBodyIsNull() {
+    Long storeId = createStore("Test Store PATCHNULL " + System.currentTimeMillis(), 10);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body("null")
+        .when()
+        .patch("/stores/" + storeId)
+        .then()
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"));
+  }
+
+  @Test
   @DisplayName("PATCH /stores/{id} should update only stock when provided")
   void shouldPatchOnlyStock() {
     String name = "Test Store " + System.currentTimeMillis();
@@ -266,8 +357,8 @@ public class StoreResourceTest {
   }
 
   @Test
-  @DisplayName("PATCH /stores/{id} should not update when empty name provided")
-  void shouldNotUpdateWhenEmptyNameProvided() {
+  @DisplayName("PATCH /stores/{id} should reject when blank name provided (Bean Validation)")
+  void shouldRejectWhenBlankNameProvided() {
     String name = "Test Store " + System.currentTimeMillis();
     Long storeId = createStore(name, 50);
     
@@ -277,9 +368,8 @@ public class StoreResourceTest {
         .when()
         .patch("/stores/" + storeId)
         .then()
-        .statusCode(200)
-        .body("name", is(name))
-        .body("quantityProductsInStock", is(50));
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"));
   }
 
   @Test

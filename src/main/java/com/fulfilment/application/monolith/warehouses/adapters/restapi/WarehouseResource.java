@@ -5,6 +5,7 @@ import com.fulfilment.application.monolith.warehouses.adapters.database.DbWareho
 import com.fulfilment.application.monolith.warehouses.adapters.database.WarehouseRepository;
 import com.fulfilment.application.monolith.warehouses.adapters.restapi.dto.CreateWarehouseRequest;
 import com.fulfilment.application.monolith.warehouses.adapters.restapi.dto.ReplaceWarehouseRequest;
+import com.fulfilment.application.monolith.warehouses.adapters.restapi.dto.WarehouseResponse;
 import com.fulfilment.application.monolith.warehouses.domain.exceptions.WarehouseNotFoundException;
 import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
@@ -68,15 +69,16 @@ public class WarehouseResource {
   @Operation(summary = "List all warehouses", description = "Retrieves a list of all warehouses in the system")
   @APIResponses(value = {
       @APIResponse(responseCode = "200", description = "Successful operation",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Warehouse.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = WarehouseResponse.class))),
       @APIResponse(responseCode = "500", description = "Internal server error",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
   })
-  public List<Warehouse> listAllWarehousesUnits() {
+  public List<WarehouseResponse> listAllWarehousesUnits() {
     log.debug("Listing all warehouses");
     return warehouseRepository.listAll()
         .stream()
         .map(this::toDomainWarehouse)
+        .map(this::toResponseWarehouse)
         .collect(Collectors.toList());
   }
 
@@ -85,7 +87,7 @@ public class WarehouseResource {
   @Operation(summary = "Create a new warehouse", description = "Creates a new warehouse with the provided details")
   @APIResponses(value = {
       @APIResponse(responseCode = "201", description = "Warehouse created successfully",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Warehouse.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = WarehouseResponse.class))),
       @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
       @APIResponse(responseCode = "404", description = "Location not found",
@@ -111,7 +113,7 @@ public class WarehouseResource {
     Warehouse created = warehouseStore.findByBusinessUnitCode(warehouse.getBusinessUnitCode());
     log.infof("Created warehouse: %s (business unit code: %s)", created.getLocation(), created.getBusinessUnitCode());
     
-    return Response.ok(created).status(Response.Status.CREATED).build();
+    return Response.ok(toResponseWarehouse(created)).status(Response.Status.CREATED).build();
   }
 
   @GET
@@ -119,13 +121,13 @@ public class WarehouseResource {
   @Operation(summary = "Get warehouse by business unit code", description = "Retrieves a specific warehouse by its business unit code")
   @APIResponses(value = {
       @APIResponse(responseCode = "200", description = "Warehouse found",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Warehouse.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = WarehouseResponse.class))),
       @APIResponse(responseCode = "404", description = "Warehouse not found",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
       @APIResponse(responseCode = "500", description = "Internal server error",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
   })
-  public Warehouse getAWarehouseUnitByID(
+  public WarehouseResponse getAWarehouseUnitByID(
       @Parameter(description = "Business unit code of the warehouse", required = true)
       @PathParam("id") String id) {
     log.debugf("Getting warehouse with id '%s'", id);
@@ -136,7 +138,7 @@ public class WarehouseResource {
       throw new WarehouseNotFoundException(id);
     }
     
-    return warehouse;
+    return toResponseWarehouse(warehouse);
   }
 
   @PUT
@@ -145,7 +147,7 @@ public class WarehouseResource {
   @Operation(summary = "Replace warehouse", description = "Replaces an existing warehouse with new data")
   @APIResponses(value = {
       @APIResponse(responseCode = "200", description = "Warehouse replaced successfully",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Warehouse.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = WarehouseResponse.class))),
       @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
       @APIResponse(responseCode = "404", description = "Warehouse or location not found",
@@ -157,7 +159,7 @@ public class WarehouseResource {
       @APIResponse(responseCode = "500", description = "Internal server error",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
   })
-  public Warehouse replaceWarehouseUnit(
+  public WarehouseResponse replaceWarehouseUnit(
       @Parameter(description = "Business unit code of the warehouse", required = true)
       @PathParam("id") String id, 
       @NotNull(message = "Request cannot be null.") @Valid ReplaceWarehouseRequest request) {
@@ -174,7 +176,7 @@ public class WarehouseResource {
     Warehouse replaced = warehouseStore.findByBusinessUnitCode(id);
     log.infof("Replaced warehouse: %s (business unit code: %s)", replaced.getLocation(), replaced.getBusinessUnitCode());
     
-    return replaced;
+    return toResponseWarehouse(replaced);
   }
 
   @DELETE
@@ -220,5 +222,16 @@ public class WarehouseResource {
       warehouse.setArchivedAt(dbWarehouse.getArchivedAt().atZone(ZoneId.of("UTC")));
     }
     return warehouse;
+  }
+
+  private WarehouseResponse toResponseWarehouse(Warehouse warehouse) {
+    return new WarehouseResponse(
+        warehouse.getBusinessUnitCode(),
+        warehouse.getLocation(),
+        warehouse.getCapacity(),
+        warehouse.getStock(),
+        warehouse.getCreationAt(),
+        warehouse.getArchivedAt()
+    );
   }
 }

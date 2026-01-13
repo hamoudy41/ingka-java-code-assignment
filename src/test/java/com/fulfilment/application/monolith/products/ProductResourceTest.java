@@ -6,6 +6,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fulfilment.application.monolith.products.domain.exceptions.ProductAlreadyExistsException;
+import com.fulfilment.application.monolith.products.domain.exceptions.ProductNotFoundException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
@@ -40,8 +42,8 @@ class ProductResourceTest {
         .when()
         .post("/product")
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("WebApplicationException"))
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
         .body("error", containsString("Id was invalidly set"));
   }
 
@@ -80,7 +82,7 @@ class ProductResourceTest {
         .get("/product/99999")
         .then()
         .statusCode(404)
-        .body("exceptionType", containsString("WebApplicationException"))
+        .body("exceptionType", containsString(ProductNotFoundException.class.getName()))
         .body("error", containsString("does not exist"));
   }
 
@@ -100,6 +102,48 @@ class ProductResourceTest {
         .body("price", is(15.75f))
         .body("stock", is(10))
         .body("id", notNullValue());
+  }
+
+  @Test
+  @DisplayName("POST /product should return 400 when request body is null (Bean Validation)")
+  void shouldReturn400WhenCreateBodyIsNull() {
+    given()
+        .contentType(ContentType.JSON)
+        .body("null")
+        .when()
+        .post("/product")
+        .then()
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"));
+  }
+
+  @Test
+  @DisplayName("POST /product should return 400 for malformed JSON (Bean Validation)")
+  void shouldReturn400ForMalformedJsonOnCreate() {
+    given()
+        .contentType(ContentType.JSON)
+        .body("{\"name\":\"TEST.BAD\",\"stock\":10")
+        .when()
+        .post("/product")
+        .then()
+        .statusCode(400);
+  }
+
+  @Test
+  @DisplayName("POST /product should return 409 when product name already exists")
+  void shouldReturn409WhenCreatingDuplicateProductName() {
+    String uniqueName = "TEST.DUPLICATE." + System.currentTimeMillis();
+    createTestProductViaApi(uniqueName, "Test", 10.0, 5);
+    
+    given()
+        .contentType(ContentType.JSON)
+        .body(String.format("{\"name\":\"%s\",\"description\":\"Test\",\"price\":10.0,\"stock\":5}", uniqueName))
+        .when()
+        .post("/product")
+        .then()
+        .statusCode(409)
+        .body("exceptionType", containsString(ProductAlreadyExistsException.class.getName()))
+        .body("error", containsString("already exists"));
   }
 
 
@@ -152,6 +196,41 @@ class ProductResourceTest {
   }
 
   @Test
+  @DisplayName("PUT /product/{id} should return 409 when updating product name to existing name")
+  void shouldReturn409WhenUpdatingProductToDuplicateName() {
+    String name1 = "TEST.DUP.UPDATE.1." + System.currentTimeMillis();
+    String name2 = "TEST.DUP.UPDATE.2." + System.currentTimeMillis();
+    Long product1Id = createTestProductViaApi(name1, "One", 10.0, 5);
+    createTestProductViaApi(name2, "Two", 10.0, 5);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body(String.format("{\"name\":\"%s\",\"description\":\"Updated\",\"price\":10.0,\"stock\":5}", name2))
+        .when()
+        .put("/product/" + product1Id)
+        .then()
+        .statusCode(409)
+        .body("exceptionType", containsString(ProductAlreadyExistsException.class.getName()))
+        .body("error", containsString("already exists"));
+  }
+
+  @Test
+  @DisplayName("PUT /product/{id} should return 400 when request body is null (Bean Validation)")
+  void shouldReturn400WhenUpdateBodyIsNull() {
+    String uniqueName = "TEST.UPDATE.NULLBODY." + System.currentTimeMillis();
+    Long productId = createTestProductViaApi(uniqueName, "Original", 10.0, 5);
+
+    given()
+        .contentType(ContentType.JSON)
+        .body("null")
+        .when()
+        .put("/product/" + productId)
+        .then()
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"));
+  }
+
+  @Test
   @DisplayName("PUT /product/{id} should reject update with null name")
   void shouldRejectUpdateWithNullName() {
     String uniqueName = "TEST.UPDATE." + System.currentTimeMillis();
@@ -163,8 +242,8 @@ class ProductResourceTest {
         .when()
         .put("/product/" + productId)
         .then()
-        .statusCode(422)
-        .body("exceptionType", containsString("WebApplicationException"))
+        .statusCode(400)
+        .body("exceptionType", containsString("ConstraintViolationException"))
         .body("error", containsString("Product Name was not set"));
   }
 
@@ -178,7 +257,7 @@ class ProductResourceTest {
         .put("/product/99999")
         .then()
         .statusCode(404)
-        .body("exceptionType", containsString("WebApplicationException"))
+        .body("exceptionType", containsString(ProductNotFoundException.class.getName()))
         .body("error", containsString("does not exist"));
   }
 
@@ -240,7 +319,7 @@ class ProductResourceTest {
         .delete("/product/99999")
         .then()
         .statusCode(404)
-        .body("exceptionType", containsString("WebApplicationException"))
+        .body("exceptionType", containsString(ProductNotFoundException.class.getName()))
         .body("error", containsString("does not exist"));
   }
 

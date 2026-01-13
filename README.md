@@ -180,11 +180,21 @@ The API uses consistent HTTP status codes:
 - `204 No Content` - Successful DELETE operations
 - `400 Bad Request` - Invalid input (validation failures)
 - `404 Not Found` - Resource not found
-- `409 Conflict` - Business conflicts (duplicates, already archived)
+- `409 Conflict` - Business conflicts (duplicates like store/product name, warehouse businessUnitCode; already archived)
 - `422 Unprocessable Entity` - Business logic violations
 - `500 Internal Server Error` - Unexpected server errors
 
 All error responses follow a standardized format with `exceptionType`, `code`, `error`, and `timestamp` fields.
+
+### API Conventions (House Style)
+
+- **DTOs in/out**: REST resources accept request DTOs (`Create*Request`, `Update*Request`, `Patch*Request`) and return response DTOs (`*Response`). We avoid returning JPA entities or domain models directly from REST.
+- **Validation**:
+  - **Request/shape validation** is done with Jakarta Bean Validation (`@Valid`, `@NotNull`, etc.) on request DTOs and results in **400**.
+  - **Business rule validation** is expressed via **custom exceptions per bounded context** and mapped to **409/422** (depending on conflict vs rule violation).
+- **Exceptions**:
+  - Avoid throwing generic exceptions (`RuntimeException`, `WebApplicationException`, `IllegalArgumentException`) for expected flow.
+  - Prefer explicit, context-scoped exceptions and keep mapping centralized in `GlobalExceptionMapper`.
 
 ---
 

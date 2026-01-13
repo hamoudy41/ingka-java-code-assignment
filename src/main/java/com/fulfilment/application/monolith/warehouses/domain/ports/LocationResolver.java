@@ -1,6 +1,6 @@
 package com.fulfilment.application.monolith.warehouses.domain.ports;
 
-import com.fulfilment.application.monolith.warehouses.domain.models.Location;
+import com.fulfilment.application.monolith.location.Location;
 
 /**
  * Port interface for resolving location information.

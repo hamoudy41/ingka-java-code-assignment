@@ -5,7 +5,9 @@ import com.fulfilment.application.monolith.stores.adapters.database.Store;
 import com.fulfilment.application.monolith.stores.adapters.legacy.StoreSyncService;
 import com.fulfilment.application.monolith.stores.adapters.restapi.dto.CreateStoreRequest;
 import com.fulfilment.application.monolith.stores.adapters.restapi.dto.PatchStoreRequest;
+import com.fulfilment.application.monolith.stores.adapters.restapi.dto.StoreResponse;
 import com.fulfilment.application.monolith.stores.adapters.restapi.dto.UpdateStoreRequest;
+import com.fulfilment.application.monolith.stores.domain.exceptions.StoreAlreadyExistsException;
 import com.fulfilment.application.monolith.stores.domain.exceptions.StoreNotFoundException;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,6 +27,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 import jakarta.persistence.OptimisticLockException;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.jbosslog.JBossLog;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -52,12 +55,16 @@ public class StoreResource {
   @Operation(summary = "List all stores", description = "Retrieves a list of all stores sorted by name")
   @APIResponses(value = {
       @APIResponse(responseCode = "200", description = "Successful operation",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = StoreResponse.class))),
       @APIResponse(responseCode = "500", description = "Internal server error",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
   })
-  public List<Store> get() {
-    return Store.listAll(Sort.by("name"));
+  public List<StoreResponse> get() {
+    return Store.listAll(Sort.by("name"))
+        .stream()
+        .map(Store.class::cast)
+        .map(this::toResponse)
+        .collect(Collectors.toList());
   }
 
   @GET
@@ -65,16 +72,16 @@ public class StoreResource {
   @Operation(summary = "Get store by ID", description = "Retrieves a specific store by its ID")
   @APIResponses(value = {
       @APIResponse(responseCode = "200", description = "Store found",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = StoreResponse.class))),
       @APIResponse(responseCode = "404", description = "Store not found",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
       @APIResponse(responseCode = "500", description = "Internal server error",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
   })
-  public Store getSingle(
+  public StoreResponse getSingle(
       @Parameter(description = "ID of the store", required = true)
       @PathParam("id") Long id) {
-    return findStoreOrThrow(id);
+    return toResponse(findStoreOrThrow(id));
   }
 
   @POST
@@ -82,13 +89,16 @@ public class StoreResource {
   @Operation(summary = "Create a new store", description = "Creates a new store and synchronizes with legacy system")
   @APIResponses(value = {
       @APIResponse(responseCode = "201", description = "Store created successfully",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = StoreResponse.class))),
       @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
       @APIResponse(responseCode = "500", description = "Internal server error or legacy sync failure",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
   })
   public Response create(@NotNull(message = "Store cannot be null.") @Valid CreateStoreRequest request) {
+    if (Store.count("name", request.name()) > 0) {
+      throw new StoreAlreadyExistsException(request.name());
+    }
     Store store = new Store();
     store.setName(request.name());
     store.setQuantityProductsInStock(request.quantityProductsInStock());
@@ -96,7 +106,7 @@ public class StoreResource {
     
     log.infof("Created store: %s (id: %d)", store.getName(), store.getId());
     storeSyncService.scheduleCreateSync(store);
-    return Response.ok(store).status(Response.Status.CREATED).build();
+    return Response.ok(toResponse(store)).status(Response.Status.CREATED).build();
   }
 
   @PUT
@@ -105,7 +115,7 @@ public class StoreResource {
   @Operation(summary = "Update store", description = "Updates an existing store (full replacement) and synchronizes with legacy system")
   @APIResponses(value = {
       @APIResponse(responseCode = "200", description = "Store updated successfully",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = StoreResponse.class))),
       @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
       @APIResponse(responseCode = "404", description = "Store not found",
@@ -115,16 +125,24 @@ public class StoreResource {
       @APIResponse(responseCode = "500", description = "Internal server error or legacy sync failure",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
   })
-  public Store update(
+  public StoreResponse update(
       @Parameter(description = "ID of the store", required = true)
       @PathParam("id") Long id, 
-      @Valid UpdateStoreRequest request) {
+      @NotNull(message = "Request cannot be null.") @Valid UpdateStoreRequest request) {
     Store entity = findStoreOrThrow(id);
-    return updateStore(entity, request, id);
+    return toResponse(updateStore(entity, request, id));
   }
 
   private Store updateStore(Store entity, UpdateStoreRequest request, Long id) {
     Long originalVersion = entity.getVersion();
+
+    // Avoid an extra DB roundtrip when name is unchanged
+    if (entity.getName() == null || !entity.getName().equals(request.name())) {
+      if (Store.count("name = ?1 AND id <> ?2", request.name(), id) > 0) {
+        throw new StoreAlreadyExistsException(request.name());
+      }
+    }
+
     entity.setName(request.name());
     entity.setQuantityProductsInStock(request.quantityProductsInStock());
 
@@ -147,7 +165,7 @@ public class StoreResource {
   @Operation(summary = "Partially update store", description = "Updates specific fields of a store and synchronizes with legacy system")
   @APIResponses(value = {
       @APIResponse(responseCode = "200", description = "Store updated successfully",
-          content = @Content(mediaType = "application/json", schema = @Schema(implementation = Store.class))),
+          content = @Content(mediaType = "application/json", schema = @Schema(implementation = StoreResponse.class))),
       @APIResponse(responseCode = "400", description = "Invalid request data (validation failed)",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class))),
       @APIResponse(responseCode = "404", description = "Store not found",
@@ -157,19 +175,26 @@ public class StoreResource {
       @APIResponse(responseCode = "500", description = "Internal server error or legacy sync failure",
           content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiError.class)))
   })
-  public Store patch(
+  public StoreResponse patch(
       @Parameter(description = "ID of the store", required = true)
       @PathParam("id") Long id, 
-      @Valid PatchStoreRequest request) {
+      @NotNull(message = "Request cannot be null.") @Valid PatchStoreRequest request) {
     Store entity = findStoreOrThrow(id);
     boolean updated = applyPartialUpdates(entity, request);
-    return updated ? persistAndSync(entity, id) : entity;
+    return toResponse(updated ? persistAndSync(entity, id) : entity);
   }
 
   private boolean applyPartialUpdates(Store entity, PatchStoreRequest request) {
     boolean updated = false;
     if (request.name() != null && !request.name().trim().isEmpty()) {
-      entity.setName(request.name().trim());
+      String newName = request.name().trim();
+      // Avoid an extra DB roundtrip when name is unchanged
+      if (entity.getName() == null || !entity.getName().equals(newName)) {
+        if (Store.count("name = ?1 AND id <> ?2", newName, entity.getId()) > 0) {
+          throw new StoreAlreadyExistsException(newName);
+        }
+      }
+      entity.setName(newName);
       updated = true;
     }
     if (request.quantityProductsInStock() != null) {
@@ -220,6 +245,15 @@ public class StoreResource {
       throw new StoreNotFoundException(id);
     }
     return entity;
+  }
+
+  private StoreResponse toResponse(Store store) {
+    return new StoreResponse(
+        store.getId(),
+        store.getName(),
+        store.getQuantityProductsInStock(),
+        store.getVersion()
+    );
   }
 
 }
