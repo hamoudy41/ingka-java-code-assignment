@@ -3,14 +3,18 @@ package com.fulfilment.application.monolith.stores;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fulfilment.application.monolith.stores.adapters.database.Store;
+import com.fulfilment.application.monolith.stores.adapters.legacy.LegacyStoreManagerGateway;
 import com.fulfilment.application.monolith.stores.adapters.legacy.StoreSyncService;
+import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.UserTransaction;
 import jakarta.transaction.Transactional;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,10 +26,34 @@ class StoreSyncServiceTest {
   @Inject EntityManager entityManager;
   @Inject UserTransaction userTransaction;
 
+  private final AtomicInteger createCalls = new AtomicInteger();
+  private final AtomicInteger updateCalls = new AtomicInteger();
+  private volatile Store lastCreateStore;
+  private volatile Store lastUpdateStore;
+
   @BeforeEach
   @Transactional
   void cleanup() {
     Store.delete("name LIKE ?1", "Test Store%");
+    createCalls.set(0);
+    updateCalls.set(0);
+    lastCreateStore = null;
+    lastUpdateStore = null;
+
+    // Replace the real gateway with an inline test double (no extra test class file needed).
+    QuarkusMock.installMockForType(new LegacyStoreManagerGateway() {
+      @Override
+      public void createStoreOnLegacySystem(Store store) {
+        createCalls.incrementAndGet();
+        lastCreateStore = store;
+      }
+
+      @Override
+      public void updateStoreOnLegacySystem(Store store) {
+        updateCalls.incrementAndGet();
+        lastUpdateStore = store;
+      }
+    }, LegacyStoreManagerGateway.class);
   }
 
   @Test
@@ -42,6 +70,7 @@ class StoreSyncServiceTest {
     assertNotNull(persisted, "Store must be committed and queryable after commit");
     assertEquals(store.getName(), persisted.getName());
     assertEquals(100, persisted.getQuantityProductsInStock());
+    awaitUntil(() -> createCalls.get() == 1, 1000);
   }
 
   @Test
@@ -62,6 +91,10 @@ class StoreSyncServiceTest {
     assertNotNull(committed, "Store must be committed");
     assertEquals(25, committed.getQuantityProductsInStock(), 
         "Committed value should be 25, sync should reload this value");
+    awaitUntil(() -> createCalls.get() == 1, 1000);
+    assertNotNull(lastCreateStore, "Legacy gateway should receive reloaded store");
+    assertEquals(25, lastCreateStore.getQuantityProductsInStock(),
+        "Legacy gateway should receive latest committed stock value");
   }
 
   @Test
@@ -80,6 +113,8 @@ class StoreSyncServiceTest {
     
     Store rolledBack = findById(store.getId());
     assertNull(rolledBack, "Store should not exist after rollback");
+    // AFTER_SUCCESS should not fire on rollback.
+    assertEquals(0, createCalls.get(), "Legacy sync must not run on rollback");
   }
 
   @Test
@@ -101,6 +136,10 @@ class StoreSyncServiceTest {
     Store updated = findById(storeId);
     assertNotNull(updated, "Updated store must be committed");
     assertEquals(20, updated.getQuantityProductsInStock());
+    awaitUntil(() -> updateCalls.get() == 1, 1000);
+    assertNotNull(lastUpdateStore, "Legacy gateway should receive reloaded store");
+    assertEquals(20, lastUpdateStore.getQuantityProductsInStock(),
+        "Legacy gateway should receive latest committed stock value");
   }
 
   @Test
@@ -158,12 +197,25 @@ class StoreSyncServiceTest {
     return entityManager.find(Store.class, id);
   }
 
+  private void awaitUntil(java.util.function.BooleanSupplier condition, long timeoutMs)
+      throws InterruptedException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    while (System.currentTimeMillis() < deadline) {
+      if (condition.getAsBoolean()) {
+        return;
+      }
+      Thread.sleep(10);
+    }
+    assertTrue(condition.getAsBoolean(), "Condition was not met within timeout");
+  }
+
   @Test
   @DisplayName("Should skip sync when store is null")
   void shouldSkipSyncWhenStoreIsNull() throws Exception {
     commit(() -> {
       storeSyncService.scheduleCreateSync(null);
     });
+    assertEquals(0, createCalls.get());
   }
 
   @Test
@@ -175,6 +227,7 @@ class StoreSyncServiceTest {
     commit(() -> {
       storeSyncService.scheduleCreateSync(store);
     });
+    assertEquals(0, createCalls.get());
   }
 
   @Test

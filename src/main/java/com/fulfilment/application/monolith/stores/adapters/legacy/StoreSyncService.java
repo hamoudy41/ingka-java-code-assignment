@@ -25,18 +25,15 @@ public class StoreSyncService {
 
   @Inject Event<StoreSyncEvent> storeSyncEvents;
 
-  private static final String OPERATION_CREATE = "create";
-  private static final String OPERATION_UPDATE = "update";
-
   public void scheduleCreateSync(Store store) {
-    scheduleSync(store, OPERATION_CREATE);
+    scheduleSync(store, StoreSyncOperation.CREATE);
   }
 
   public void scheduleUpdateSync(Store store) {
-    scheduleSync(store, OPERATION_UPDATE);
+    scheduleSync(store, StoreSyncOperation.UPDATE);
   }
 
-  private void scheduleSync(Store store, String operation) {
+  private void scheduleSync(Store store, StoreSyncOperation operation) {
     if (!isValidForSync(store)) {
       return;
     }
@@ -66,26 +63,24 @@ public class StoreSyncService {
 
     logVersionMismatchIfAny(event, reloadedStore);
 
-    if (OPERATION_CREATE.equals(event.operation())) {
-      executeSafely(event.correlationId(), () -> {
+    if (event.operation() == null) {
+      log.warnf("[%s] Unknown store sync operation: null (store: %d)",
+          event.correlationId(), event.storeId());
+      return;
+    }
+
+    switch (event.operation()) {
+      case CREATE -> executeSafely(event.correlationId(), () -> {
         legacyStoreManagerGateway.createStoreOnLegacySystem(reloadedStore);
         log.infof("[%s] Synchronized store creation: %s (id: %d)",
             event.correlationId(), reloadedStore.getName(), reloadedStore.getId());
       });
-      return;
-    }
-
-    if (OPERATION_UPDATE.equals(event.operation())) {
-      executeSafely(event.correlationId(), () -> {
+      case UPDATE -> executeSafely(event.correlationId(), () -> {
         legacyStoreManagerGateway.updateStoreOnLegacySystem(reloadedStore);
         log.infof("[%s] Synchronized store update: %s (id: %d)",
             event.correlationId(), reloadedStore.getName(), reloadedStore.getId());
       });
-      return;
     }
-
-    log.warnf("[%s] Unknown store sync operation: %s (store: %d)",
-        event.correlationId(), event.operation(), event.storeId());
   }
 
   private void logVersionMismatchIfAny(StoreSyncEvent event, Store reloadedStore) {
@@ -98,6 +93,8 @@ public class StoreSyncService {
 
   private Store reloadStore(Long storeId) {
     try {
+      // Called from a REQUIRES_NEW transaction (AFTER_SUCCESS observer), so we already have a
+      // fresh persistence context relative to the original write TX.
       return entityManager.find(Store.class, storeId);
     } catch (Exception e) {
       log.errorf(e, "Failed to reload store with id: %d", storeId);
