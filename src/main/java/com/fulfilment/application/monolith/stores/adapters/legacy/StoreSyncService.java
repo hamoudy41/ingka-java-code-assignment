@@ -1,6 +1,8 @@
 package com.fulfilment.application.monolith.stores.adapters.legacy;
 
 import com.fulfilment.application.monolith.stores.adapters.database.Store;
+import com.fulfilment.application.monolith.stores.domain.events.StoreChangeType;
+import com.fulfilment.application.monolith.stores.domain.events.StoreChangedEvent;
 import jakarta.enterprise.event.Event;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.event.TransactionPhase;
@@ -23,17 +25,17 @@ public class StoreSyncService {
 
   @Inject EntityManager entityManager;
 
-  @Inject Event<StoreSyncEvent> storeSyncEvents;
+  @Inject Event<StoreChangedEvent> storeEvents;
 
   public void scheduleCreateSync(Store store) {
-    scheduleSync(store, StoreSyncOperation.CREATE);
+    publishStoreEvent(store, StoreChangeType.CREATED);
   }
 
   public void scheduleUpdateSync(Store store) {
-    scheduleSync(store, StoreSyncOperation.UPDATE);
+    publishStoreEvent(store, StoreChangeType.UPDATED);
   }
 
-  private void scheduleSync(Store store, StoreSyncOperation operation) {
+  private void publishStoreEvent(Store store, StoreChangeType type) {
     if (!isValidForSync(store)) {
       return;
     }
@@ -41,7 +43,7 @@ public class StoreSyncService {
     final StoreSnapshot snapshot = StoreSnapshot.from(store);
     final String correlationId = UUID.randomUUID().toString();
 
-    storeSyncEvents.fire(new StoreSyncEvent(snapshot.id(), operation, snapshot.version(), correlationId));
+    storeEvents.fire(new StoreChangedEvent(snapshot.id(), type, snapshot.version(), correlationId));
   }
 
   private boolean isValidForSync(Store store) {
@@ -49,7 +51,7 @@ public class StoreSyncService {
   }
 
   @Transactional(Transactional.TxType.REQUIRES_NEW)
-  void onStoreSync(@Observes(during = TransactionPhase.AFTER_SUCCESS) StoreSyncEvent event) {
+  void onStoreChanged(@Observes(during = TransactionPhase.AFTER_SUCCESS) StoreChangedEvent event) {
     if (event == null || event.storeId() == null) {
       return;
     }
@@ -57,25 +59,25 @@ public class StoreSyncService {
     Store reloadedStore = reloadStore(event.storeId());
     if (reloadedStore == null) {
       log.errorf("[%s] Store %d not found after commit, skipping %s sync",
-          event.correlationId(), event.storeId(), event.operation());
+          event.correlationId(), event.storeId(), event.type());
       return;
     }
 
     logVersionMismatchIfAny(event, reloadedStore);
 
-    if (event.operation() == null) {
-      log.warnf("[%s] Unknown store sync operation: null (store: %d)",
+    if (event.type() == null) {
+      log.warnf("[%s] Unknown store event type: null (store: %d)",
           event.correlationId(), event.storeId());
       return;
     }
 
-    switch (event.operation()) {
-      case CREATE -> executeSafely(event.correlationId(), () -> {
+    switch (event.type()) {
+      case CREATED -> executeSafely(event.correlationId(), () -> {
         legacyStoreManagerGateway.createStoreOnLegacySystem(reloadedStore);
         log.infof("[%s] Synchronized store creation: %s (id: %d)",
             event.correlationId(), reloadedStore.getName(), reloadedStore.getId());
       });
-      case UPDATE -> executeSafely(event.correlationId(), () -> {
+      case UPDATED -> executeSafely(event.correlationId(), () -> {
         legacyStoreManagerGateway.updateStoreOnLegacySystem(reloadedStore);
         log.infof("[%s] Synchronized store update: %s (id: %d)",
             event.correlationId(), reloadedStore.getName(), reloadedStore.getId());
@@ -83,7 +85,7 @@ public class StoreSyncService {
     }
   }
 
-  private void logVersionMismatchIfAny(StoreSyncEvent event, Store reloadedStore) {
+  private void logVersionMismatchIfAny(StoreChangedEvent event, Store reloadedStore) {
     if (event.expectedVersion() != null && reloadedStore.getVersion() != null
         && !event.expectedVersion().equals(reloadedStore.getVersion())) {
       log.warnf("[%s] Version mismatch (expected: %d, actual: %d)",
