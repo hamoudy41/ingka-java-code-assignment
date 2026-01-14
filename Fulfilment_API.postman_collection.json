@@ -56,6 +56,7 @@
 									"    pm.expect(jsonData).to.have.property('quantityProductsInStock');",
 									"    pm.expect(jsonData.quantityProductsInStock).to.equal(100);",
 									"    pm.collectionVariables.set('storeId', jsonData.id);",
+									"    pm.collectionVariables.set('storeName', jsonData.name);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -236,6 +237,120 @@
 					"response": []
 				},
 				{
+					"name": "Create Store - Duplicate Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error message indicates store already exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('StoreAlreadyExistsException');",
+									"    pm.expect(jsonData.error).to.include('already exists');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{storeName}}\",\n    \"quantityProductsInStock\": 100\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Store - Null Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "null"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Store - Malformed JSON",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Store\",\n    \"quantityProductsInStock\": 10"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Update Store - Success",
 					"event": [
 						{
@@ -344,6 +459,124 @@
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"name\": \"\",\n    \"quantityProductsInStock\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Second Store for Duplicate Test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Save second store name\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('storeName2', jsonData.name);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Duplicate Test Store {{$timestamp}}\",\n    \"quantityProductsInStock\": 50\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Store - Duplicate Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error message indicates store already exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('StoreAlreadyExistsException');",
+									"    pm.expect(jsonData.error).to.include('already exists');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{storeName2}}\",\n    \"quantityProductsInStock\": 200\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Store - Null Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "null"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/stores/{{storeId}}",
@@ -473,6 +706,165 @@
 					"response": []
 				},
 				{
+					"name": "Patch Store - Duplicate Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error message indicates store already exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('StoreAlreadyExistsException');",
+									"    pm.expect(jsonData.error).to.include('already exists');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{storeName2}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Store - Invalid (Blank Name)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"   \"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Store - Null Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "null"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Patch Store - Empty Body (No Changes)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Store remains unchanged\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('quantityProductsInStock');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/stores/{{storeId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["stores", "{{storeId}}"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Delete Store - Success",
 					"event": [
 						{
@@ -581,6 +973,7 @@
 									"    pm.expect(jsonData.price).to.equal(29.99);",
 									"    pm.expect(jsonData.stock).to.equal(50);",
 									"    pm.collectionVariables.set('productId', jsonData.id);",
+									"    pm.collectionVariables.set('productName', jsonData.name);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -760,6 +1153,159 @@
 					"response": []
 				},
 				{
+					"name": "Create Second Product for Duplicate Test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Save second product name\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('productName2', jsonData.name);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Duplicate Test Product {{$timestamp}}\",\n    \"description\": \"Second product for duplicate test\",\n    \"price\": 15.50,\n    \"stock\": 30\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product",
+							"host": ["{{baseUrl}}"],
+							"path": ["product"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product - Duplicate Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error message indicates product already exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ProductAlreadyExistsException');",
+									"    pm.expect(jsonData.error).to.include('already exists');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{productName2}}\",\n    \"description\": \"Duplicate product test\",\n    \"price\": 19.99,\n    \"stock\": 25\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product",
+							"host": ["{{baseUrl}}"],
+							"path": ["product"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product - Null Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "null"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product",
+							"host": ["{{baseUrl}}"],
+							"path": ["product"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product - Malformed JSON",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Product\",\n    \"stock\": 10"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product",
+							"host": ["{{baseUrl}}"],
+							"path": ["product"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Update Product - Not Found",
 					"event": [
 						{
@@ -794,6 +1340,85 @@
 							"raw": "{{baseUrl}}/product/99999",
 							"host": ["{{baseUrl}}"],
 							"path": ["product", "99999"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product - Duplicate Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 409\", function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"pm.test(\"Error message indicates product already exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ProductAlreadyExistsException');",
+									"    pm.expect(jsonData.error).to.include('already exists');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"{{productName2}}\",\n    \"description\": \"Updated description\",\n    \"price\": 39.99,\n    \"stock\": 75\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "{{productId}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product - Null Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "null"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/product/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["product", "{{productId}}"]
 						}
 					},
 					"response": []
@@ -1321,6 +1946,45 @@
 					"response": []
 				},
 				{
+					"name": "Create Warehouse - Null Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "null"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Replace Warehouse - Success",
 					"event": [
 						{
@@ -1518,6 +2182,45 @@
 					"response": []
 				},
 				{
+					"name": "Replace Warehouse - Null Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"pm.test(\"Error indicates Bean Validation failure\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.exceptionType).to.include('ConstraintViolationException');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "null"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/warehouse/{{warehouseBusinessUnitCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["warehouse", "{{warehouseBusinessUnitCode}}"]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Archive Warehouse - Success",
 					"event": [
 						{
@@ -1675,6 +2378,26 @@
 		},
 		{
 			"key": "warehouseBusinessUnitCode",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "storeName",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "productName",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "storeName2",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "productName2",
 			"value": "",
 			"type": "string"
 		}
